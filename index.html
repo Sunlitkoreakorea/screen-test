@@ -195,7 +195,7 @@
           <label class="f"><span class="l">기준 측정 시행<i>회</i></span><input id="baseline" type="number" value="10" min="1" max="60"></label>
           <label class="f"><span class="l">시점당 시행<i>회</i></span><input id="perBlock" type="number" value="5" min="1" max="20"></label>
           <label class="f"><span class="l">응답 제한시간<i>ms</i></span><input id="timeout" type="number" value="2000" min="500" max="8000" step="100"></label>
-          <label class="f span2"><span class="l">측정 시점 <i>초</i></span><input id="timepoints" type="text" value="5, 10, 20, 30, 45, 60"></label>
+          <label class="f span2"><span class="l">측정 시점 <i>초</i></span><input id="timepoints" type="text" value="1, 5, 10, 20, 30, 45, 60"></label>
           <label class="f"><span class="l">시행 간격<i>ms</i></span><input id="iti" type="number" value="200" min="0" max="2000" step="50"></label>
           <label class="f"><span class="l">다음 시점 보호</span>
             <select id="lateTol">
@@ -314,7 +314,7 @@ const DIRS = { ArrowRight: 0, ArrowDown: 1, ArrowLeft: 2, ArrowUp: 3 };
 const isDir = k => Object.prototype.hasOwnProperty.call(DIRS, k);
 const ARROW = ['→', '↓', '←', '↑'];
 const ORI_CODE = ['R', 'D', 'L', 'U'];
-const DEFAULT_TP = [5, 10, 20, 30, 45, 60];
+const DEFAULT_TP = [1, 5, 10, 20, 30, 45, 60];
 class Abort extends Error {}
 
 const state = { calibrated: false, ppm: 0, pvOri: 0, last: null };
