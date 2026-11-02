@@ -1,0 +1,1224 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>화면 테스트</title>
+<meta name="robots" content="noindex, nofollow">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+KR:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap">
+<style>
+  :root {
+    --paper: #eef1f4;
+    --sheet: #ffffff;
+    --field: #f6f8f9;
+    --ink: #1b2430;
+    --ink-soft: #57616d;
+    --ink-faint: #7b8592;
+    --border: #ccd6dc;
+    --accent: #c46a2e;
+    --accent2: #2f6b80;
+    --accent2-soft: #d3e3e7;
+    --on-accent2: #ffffff;
+    --warn-bg: #fbe9e2;
+    --warn-ink: #a13f18;
+    --shadow: 0 1px 2px rgba(27,36,48,.06), 0 6px 20px rgba(27,36,48,.05);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --paper: #12181f;
+      --sheet: #19222b;
+      --field: #141c24;
+      --ink: #e7ecf0;
+      --ink-soft: #a2adb8;
+      --ink-faint: #7b8794;
+      --border: #2c3946;
+      --accent: #e08a4c;
+      --accent2: #5ca0b6;
+      --accent2-soft: #1f3840;
+      --on-accent2: #0d1a20;
+      --warn-bg: #3a1f16;
+      --warn-ink: #e6a583;
+      --shadow: 0 1px 2px rgba(0,0,0,.3), 0 10px 30px rgba(0,0,0,.35);
+    }
+  }
+
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--paper); color: var(--ink); font-family: "IBM Plex Sans KR", "Malgun Gothic", sans-serif; line-height: 1.55; }
+  .mono { font-family: "JetBrains Mono", ui-monospace, monospace; }
+  .wrap { max-width: 1120px; margin: 0 auto; padding: 32px 20px 72px; }
+
+  .eyebrow { font-family: "JetBrains Mono", monospace; font-size: 12px; letter-spacing: .14em; text-transform: uppercase; color: var(--accent2); font-weight: 700; margin: 0 0 6px; }
+  h1 { font-family: "JetBrains Mono", "IBM Plex Sans KR", monospace; font-size: clamp(22px, 3.6vw, 30px); margin: 0 0 6px; letter-spacing: -.01em; text-wrap: balance; }
+  .lede { color: var(--ink-soft); font-size: 14.5px; max-width: 68ch; margin: 0 0 24px; }
+
+  .layout { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 420px); gap: 20px; align-items: start; }
+  @media (max-width: 900px) { .layout { grid-template-columns: minmax(0, 1fr); } }
+
+  .group { background: var(--sheet); border: 1px solid var(--border); border-radius: 6px; padding: 16px 18px 18px; margin: 0 0 14px; box-shadow: var(--shadow); min-width: 0; }
+  .group > h2 { font-family: "JetBrains Mono", monospace; font-size: 12px; letter-spacing: .08em; text-transform: uppercase; color: var(--ink-faint); margin: 0 0 12px; font-weight: 700; }
+  .grid2 { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px 14px; }
+  @media (max-width: 520px) { .grid2 { grid-template-columns: minmax(0, 1fr); } }
+  .span2 { grid-column: 1 / -1; }
+  .f { display: flex; flex-direction: column; gap: 5px; min-width: 0; }
+  .l { font-size: 12.5px; font-weight: 600; }
+  .l i { font-style: normal; font-family: "JetBrains Mono", monospace; font-weight: 400; color: var(--ink-faint); margin-left: 5px; font-size: 11px; }
+  .h { font-size: 11.5px; color: var(--ink-faint); }
+  input, select { width: 100%; font: inherit; font-size: 14px; font-family: "JetBrains Mono", "IBM Plex Sans KR", monospace; color: var(--ink); background: var(--field); border: 1px solid var(--border); border-radius: 4px; padding: 7px 9px; }
+  input:focus-visible, select:focus-visible, button:focus-visible { outline: 2px solid var(--accent2); outline-offset: 2px; }
+
+  button { font: inherit; cursor: pointer; border-radius: 4px; border: 1px solid var(--border); background: var(--field); color: var(--ink); padding: 7px 12px; font-size: 13px; }
+  button:hover { border-color: var(--accent2); }
+  button.primary { background: var(--accent2); color: var(--on-accent2); border-color: var(--accent2); font-weight: 600; padding: 11px 14px; font-size: 14px; }
+  button.primary:hover { filter: brightness(1.08); }
+  .chips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 6px; }
+  .chips button { padding: 3px 9px; font-family: "JetBrains Mono", monospace; font-size: 12px; }
+
+  aside { position: sticky; top: 16px; min-width: 0; }
+  @media (max-width: 900px) { aside { position: static; } }
+  .card { background: var(--sheet); border: 1px solid var(--border); border-radius: 6px; padding: 16px 18px; box-shadow: var(--shadow); margin-bottom: 14px; min-width: 0; }
+  .card h2 { font-family: "JetBrains Mono", monospace; font-size: 12px; letter-spacing: .08em; text-transform: uppercase; color: var(--ink-faint); margin: 0 0 10px; }
+  #pv { width: 100%; height: 200px; display: block; border-radius: 4px; border: 1px solid var(--border); }
+  .ori { display: flex; gap: 6px; margin: 8px 0 12px; }
+  .ori button { flex: 1; font-size: 15px; padding: 4px 0; }
+  dl.kv { display: grid; grid-template-columns: auto 1fr; gap: 4px 12px; margin: 0; font-size: 12.5px; }
+  dl.kv dt { color: var(--ink-faint); }
+  dl.kv dd { margin: 0; font-family: "JetBrains Mono", monospace; font-size: 12px; text-align: right; word-break: keep-all; }
+  .warns { margin-top: 10px; display: flex; flex-direction: column; gap: 6px; }
+  .warn { background: var(--warn-bg); color: var(--warn-ink); border-radius: 4px; padding: 7px 10px; font-size: 12px; }
+  .actions { display: flex; flex-direction: column; gap: 8px; }
+  #status { min-height: 18px; font-size: 12.5px; color: var(--warn-ink); margin: 2px 0 0; }
+  .keys { margin: 0; padding: 0; list-style: none; font-size: 12px; color: var(--ink-soft); display: grid; grid-template-columns: auto 1fr; gap: 3px 10px; }
+  .keys kbd { font-family: "JetBrains Mono", monospace; font-size: 11px; background: var(--field); border: 1px solid var(--border); border-radius: 3px; padding: 0 5px; }
+
+  #results { margin-top: 20px; }
+  #results[hidden] { display: none; }
+  .res-head { display: flex; flex-wrap: wrap; gap: 6px 18px; font-size: 13px; color: var(--ink-soft); margin-bottom: 10px; }
+  .res-head b { color: var(--ink); font-weight: 600; }
+  .table-wrap { overflow-x: auto; }
+  table.res { width: 100%; border-collapse: collapse; font-size: 13px; min-width: 560px; font-variant-numeric: tabular-nums; }
+  table.res th { font-family: "JetBrains Mono", monospace; font-size: 10.5px; letter-spacing: .04em; text-transform: uppercase; color: var(--ink-faint); text-align: right; padding: 7px 9px; border-bottom: 2px solid var(--border); }
+  table.res th:first-child, table.res td:first-child { text-align: left; }
+  table.res td { text-align: right; padding: 8px 9px; border-bottom: 1px solid var(--border); font-family: "JetBrains Mono", monospace; font-size: 12.5px; }
+  table.res tr:last-child td { border-bottom: none; }
+  .charts { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; margin: 14px 0; }
+  @media (max-width: 700px) { .charts { grid-template-columns: minmax(0, 1fr); } }
+  .charts canvas { width: 100%; height: 190px; display: block; }
+  .charts h3 { font-size: 12.5px; margin: 0 0 4px; font-weight: 600; }
+  .sums { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 10px; margin: 12px 0; }
+  .sums div { background: var(--field); border: 1px solid var(--border); border-radius: 4px; padding: 8px 12px; }
+  .sums span { display: block; font-size: 11.5px; color: var(--ink-faint); }
+  .sums b { font-family: "JetBrains Mono", monospace; font-size: 16px; }
+  .res-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px; }
+  .note { font-size: 12px; color: var(--ink-faint); margin-top: 10px; }
+
+  .anbar { display: flex; flex-wrap: wrap; gap: 8px 12px; align-items: center; margin: 0 0 8px; }
+  .anbar label { display: flex; align-items: center; gap: 6px; font-size: 12.5px; font-weight: 600; }
+  .anbar select { width: auto; }
+  .anbar input[type=checkbox] { width: auto; }
+  h3.an { font-size: 12.5px; margin: 18px 0 6px; font-weight: 600; }
+  table.sess td:nth-child(n+2):nth-child(-n+9) { text-align: left; }
+  table.sess th:nth-child(n+2):nth-child(-n+9) { text-align: left; }
+  table.sess td input[type=checkbox] { width: auto; }
+  .tbl-scroll { max-height: 340px; overflow: auto; border: 1px solid var(--border); border-radius: 4px; }
+  tr.dim { opacity: .5; }
+  .tag { font-size: 10.5px; background: var(--warn-bg); color: var(--warn-ink); border-radius: 3px; padding: 0 4px; }
+  .dot { display: inline-block; width: 9px; height: 9px; border-radius: 50%; margin-right: 6px; }
+  .lg { display: flex; flex-wrap: wrap; gap: 4px 14px; font-size: 12px; margin: 4px 0 2px; }
+  .lg i { display: inline-block; width: 10px; height: 10px; border-radius: 2px; margin-right: 5px; }
+  .tbl-scroll table.res { min-width: 860px; }
+
+  dialog { background: var(--sheet); color: var(--ink); border: 1px solid var(--border); border-radius: 8px; padding: 20px 22px; max-width: 560px; width: calc(100% - 32px); }
+  dialog::backdrop { background: rgba(0,0,0,.45); }
+  #calBar { height: 54px; background: var(--accent2-soft); border: 2px solid var(--accent2); border-radius: 4px; margin: 14px 0 10px; display: flex; align-items: center; justify-content: center; font-family: "JetBrains Mono", monospace; font-size: 12px; color: var(--accent2); max-width: 100%; }
+  .calbox { overflow-x: auto; padding-bottom: 4px; }
+
+  #stage { position: fixed; inset: 0; z-index: 1000; background: #808080; cursor: none; display: block; }
+  #stage[hidden] { display: none; }
+  #stageCanvas { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+  #hud { position: absolute; left: 12px; top: 12px; font: 12px/1.55 "JetBrains Mono", monospace; color: #d8d8d8; background: rgba(0,0,0,.5); padding: 8px 11px; border-radius: 4px; white-space: pre; pointer-events: none; }
+  #hud[hidden] { display: none; }
+
+  .warn.info { background: var(--field); color: var(--ink-soft); border: 1px solid var(--border); }
+  input:disabled, select:disabled { opacity: .55; cursor: not-allowed; }
+  button:disabled { opacity: .45; cursor: not-allowed; }
+  button:disabled:hover { border-color: var(--border); }
+  .lockbar { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px 10px; background: var(--field); border: 1px solid var(--border); border-radius: 4px; padding: 8px 10px; margin-bottom: 10px; }
+  .lockbar.on { background: var(--accent2-soft); border-color: var(--accent2); }
+  .lockbar .lb-info { display: flex; flex-direction: column; gap: 1px; min-width: 0; }
+  .lockbar .lb-info b { font-family: "JetBrains Mono", monospace; font-size: 15px; }
+  .lockbar .lb-btns { display: flex; gap: 6px; }
+  .lockbar.on #btnLock { background: var(--accent2); color: var(--on-accent2); border-color: var(--accent2); }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1 style="margin-bottom:20px">화면 테스트</h1>
+
+  <div class="layout">
+    <form id="settings" onsubmit="return false">
+      <section class="group">
+        <h2>모니터 · 거리</h2>
+        <div class="grid2">
+          <label class="f"><span class="l">모니터 대각선<i>inch</i></span><input id="diag" type="number" value="24" min="10" max="60" step="0.1"></label>
+          <label class="f"><span class="l">눈–화면 거리<i>cm</i></span><input id="dist" type="number" value="45" min="10" max="200" step="1"></label>
+          <div class="f span2">
+            <span class="l">화면 크기 보정 <i id="calState">대각선 추정값 사용 중</i></span>
+            <div class="chips" style="margin-top:0"><button type="button" id="btnCal">신용카드로 보정</button><button type="button" id="btnCalReset">보정 해제</button></div>
+            
+          </div>
+        </div>
+      </section>
+
+      <section class="group">
+        <h2>자극</h2>
+        <div class="grid2">
+          <label class="f"><span class="l">틈 크기<i>분각 ′</i></span><input id="gap" type="number" value="10" min="1" max="60" step="0.5"></label>
+          <label class="f"><span class="l">웨버 대비<i>%</i></span><input id="contrast" type="number" value="5" min="0.5" max="100" step="0.5"></label>
+          <div class="f span2" style="margin-top:-6px"><span class="h">대비 프리셋</span><div class="chips" id="cPresets"><button type="button" data-c="5">5%</button><button type="button" data-c="10">10%</button><button type="button" data-c="25">25%</button><button type="button" data-c="50">50%</button><button type="button" data-c="100">100%</button></div></div>
+          <label class="f"><span class="l">배경 밝기<i>gray 0–255</i></span><input id="bg" type="number" value="160" min="20" max="250" step="5"></label>
+        </div>
+      </section>
+
+      <section class="group">
+        <h2>섬광</h2>
+        <div class="grid2">
+          <label class="f"><span class="l">섬광 밝기<i>gray 0–255</i></span><input id="flashGray" type="number" value="255" min="0" max="255" step="5"></label>
+          <label class="f"><span class="l">지속 시간<i>초</i></span><input id="flashSec" type="number" value="3" min="0.5" max="15" step="0.5"></label>
+        </div>
+      </section>
+
+      <section class="group">
+        <h2>시행 설정</h2>
+        <div class="grid2">
+          <label class="f"><span class="l">연습 시행<i>회</i></span><input id="practice" type="number" value="4" min="0" max="20"></label>
+          <label class="f"><span class="l">기준 측정 시행<i>회</i></span><input id="baseline" type="number" value="10" min="1" max="60"></label>
+          <label class="f"><span class="l">시점당 시행<i>회</i></span><input id="perBlock" type="number" value="5" min="1" max="20"></label>
+          <label class="f"><span class="l">응답 제한시간<i>ms</i></span><input id="timeout" type="number" value="2000" min="500" max="8000" step="100"></label>
+          <label class="f span2"><span class="l">측정 시점 <i>초</i></span><input id="timepoints" type="text" value="5, 10, 20, 30, 45, 60"></label>
+          <label class="f"><span class="l">시행 간격<i>ms</i></span><input id="iti" type="number" value="200" min="0" max="2000" step="50"></label>
+          <label class="f"><span class="l">다음 시점 보호</span>
+            <select id="lateTol">
+              <option value="0">끊기 · 지연 0초까지</option>
+              <option value="0.5">끊기 · 지연 0.5초까지</option>
+              <option value="1" selected>끊기 · 지연 1초까지 (권장)</option>
+              <option value="2">끊기 · 지연 2초까지</option>
+              <option value="-1">끄기 (시행 수 고정)</option>
+            </select></label>
+        </div>
+      </section>
+
+      <section class="group">
+        <h2>기록 정보</h2>
+        <div class="grid2">
+          <label class="f"><span class="l">참여자 코드</span><input id="code" type="text" placeholder="예: 01" autocomplete="off"></label>
+          <label class="f"><span class="l">측정 눈</span><select id="eye"><option value="우안">우안</option><option value="좌안">좌안</option></select></label>
+          <label class="f"><span class="l">조건</span>
+            <select id="cond">
+              <option value="EXP3">EXP3</option>
+              <option value="A">A</option>
+              <option value="ND4">ND4</option>
+              <option value="ND8">ND8</option>
+              <option value="C">C</option>
+              <option value="D1">D1</option>
+              <option value="D2">D2</option>
+              <option value="CAL">CAL</option>
+            </select></label>
+          <label class="f"><span class="l">회차</span><select id="sess"><option value="1차">1차</option><option value="2차">2차</option></select></label>
+          <label class="f"><span class="l">SE<i>D</i></span><input id="se" type="number" step="0.25" min="-20" max="5" placeholder="예: -6.5"></label>
+          <label class="f"><span class="l">군</span>
+            <select id="grp">
+              <option value="">미지정</option>
+              <option value="G1">1군</option>
+              <option value="G2">2군</option>
+              <option value="G3">3군</option>
+            </select></label>
+          <label class="f span2"><span class="l">메모</span><input id="note" type="text" placeholder="예: 눈 위치 12.3 lux, 모니터 밝기 60%"></label>
+        </div>
+      </section>
+    </form>
+
+    <aside>
+      <div class="card">
+        <h2>미리보기 (실제 크기 기준)</h2>
+        <canvas id="pv"></canvas>
+        <div class="ori" id="oriBtns"><button type="button" data-o="3" title="위">↑</button><button type="button" data-o="1" title="아래">↓</button><button type="button" data-o="2" title="왼쪽">←</button><button type="button" data-o="0" title="오른쪽">→</button></div>
+        <dl class="kv" id="readout"></dl>
+        <div class="warns" id="warns"></div>
+      </div>
+
+      <div class="card">
+        <h2>실행</h2>
+        <div class="lockbar" id="lockBar">
+          <div class="lb-info"><span class="h">측정 프로토콜 ID</span><b id="protoId">P-000000</b><span class="h" id="lockState"></span></div>
+          <div class="lb-btns"><button type="button" id="btnDefaults" title="측정 설정을 처음 기본값으로">기본값</button><button type="button" id="btnLock">설정 잠금</button></div>
+        </div>
+        <div class="actions">
+          <button type="button" class="primary" id="btnTest">화면 테스트 (전체화면)</button>
+          <button type="button" class="primary" id="btnRun">측정 세션 시작</button>
+        </div>
+        <p id="status" role="status"></p>
+        <ul class="keys">
+          <li><kbd>←↑→↓</kbd><span>C의 벌어진 방향 답하기</span></li>
+          <li><kbd>- =</kbd><span>대비 −/+1% (Shift 5%)</span></li>
+          <li><kbd>[ ]</kbd><span>틈 크기 −/+0.5′</span></li>
+          <li><kbd>, .</kbd><span>배경 −/+5</span></li>
+          <li><kbd>F</kbd><span>섬광 미리보기</span></li>
+          <li><kbd>Space</kbd><span>새 방향 · <kbd>H</kbd> 정보창 · <kbd>Esc</kbd> 종료</span></li>
+          <li><kbd>Q</kbd><span>측정 중 즉시 중단</span></li>
+        </ul>
+      </div>
+      <div class="card" id="lastWrap" hidden><button type="button" id="btnLast">직전 세션 결과 다시 보기</button></div>
+    </aside>
+  </div>
+
+  <section class="card" id="results" hidden></section>
+
+  <section class="card" id="analysis" style="margin-top:20px">
+    <h2>누적 기록 · 분석</h2>
+    <div class="anbar">
+      <label>분석 조건 <select id="fCond"></select></label>
+      <label>프로토콜 <select id="fProto"><option value="ALL">전체</option></select></label>
+      <label><input type="checkbox" id="fAborted" checked>중단된 세션 제외</label>
+      <label><input type="checkbox" id="fFirst" checked>재측정(2차)은 군 비교에서 제외</label>
+      <button type="button" id="btnAllTrials">전체 시행 CSV</button>
+      <button type="button" id="btnAllSum">전체 요약 CSV</button>
+      <button type="button" id="btnBackup">JSON 백업</button>
+      <button type="button" id="btnRestore">JSON 복원</button>
+      <input type="file" id="fileRestore" accept=".json,application/json" hidden>
+      <button type="button" id="btnClear">기록 모두 삭제</button>
+    </div>
+    <p class="note" id="anNote" style="margin:0 0 6px"></p>
+    <div id="anBody"></div>
+  </section>
+</div>
+
+<dialog id="cal">
+  <h3 style="margin:0 0 6px">신용카드로 화면 크기 보정</h3>
+  <p style="margin:0;font-size:13.5px;color:var(--ink-soft)">신용카드(가로 85.6mm)를 화면에 대고, 아래 파란 막대의 폭이 카드 폭과 같아지도록 슬라이더를 움직이세요.</p>
+  <div class="calbox"><div id="calBar">85.6 mm</div></div>
+  <input id="calRange" type="range" min="150" max="700" step="1" value="310">
+  <div class="chips" style="justify-content:flex-end;margin-top:14px"><button type="button" id="calCancel">취소</button><button type="button" class="primary" id="calOk" style="padding:7px 16px">적용</button></div>
+</dialog>
+
+<div id="stage" hidden><canvas id="stageCanvas"></canvas><div id="hud" hidden></div></div>
+
+<script>
+'use strict';
+const $ = s => document.querySelector(s);
+const clamp = (v, a, b) => Math.min(b, Math.max(a, v));
+const num = (id, d) => { const v = parseFloat($('#' + id).value); return Number.isFinite(v) ? v : d; };
+const rgb = g => `rgb(${g},${g},${g})`;
+const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+const DIRS = { ArrowRight: 0, ArrowDown: 1, ArrowLeft: 2, ArrowUp: 3 };
+const isDir = k => Object.prototype.hasOwnProperty.call(DIRS, k);
+const ARROW = ['→', '↓', '←', '↑'];
+const ORI_CODE = ['R', 'D', 'L', 'U'];
+const DEFAULT_TP = [5, 10, 20, 30, 45, 60];
+class Abort extends Error {}
+
+const state = { calibrated: false, ppm: 0, pvOri: 0, last: null };
+
+const sLin = v => { v /= 255; return v <= 0.04045 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4); };
+const linS = l => { const v = l <= 0.0031308 ? l * 12.92 : 1.055 * Math.pow(l, 1 / 2.4) - 0.055; return Math.round(clamp(v, 0, 1) * 255); };
+
+function parseTimepoints(str) {
+  const a = String(str).split(/[\s,]+/).map(parseFloat).filter(x => Number.isFinite(x) && x > 0);
+  const u = [...new Set(a)].sort((x, y) => x - y);
+  return u.length ? u : DEFAULT_TP.slice();
+}
+
+function readSettings() {
+  return {
+    diag: clamp(num('diag', 24), 10, 60),
+    dist: clamp(num('dist', 45), 10, 200),
+    gapArc: clamp(num('gap', 10), 1, 60),
+    contrast: clamp(num('contrast', 5), 0.5, 100),
+    bg: clamp(Math.round(num('bg', 160)), 20, 250),
+    flashGray: clamp(Math.round(num('flashGray', 255)), 0, 255),
+    flashMs: clamp(Math.round(num('flashSec', 3) * 1000), 500, 15000),
+    practice: clamp(Math.round(num('practice', 4)), 0, 20),
+    baseline: clamp(Math.round(num('baseline', 10)), 1, 60),
+    perBlock: clamp(Math.round(num('perBlock', 5)), 1, 20),
+    iti: clamp(Math.round(num('iti', 200)), 0, 2000),
+    timeout: clamp(Math.round(num('timeout', 2000)), 500, 8000),
+    timepoints: parseTimepoints($('#timepoints').value),
+    ...(() => { const v = parseFloat($('#lateTol').value), lt = Number.isFinite(v) ? v : 1; return { blockCut: lt >= 0, lateTol: Math.max(0, lt) }; })(),
+    code: $('#code').value.trim(),
+    eye: $('#eye').value,
+    cond: $('#cond').value,
+    sess: $('#sess').value,
+    group: $('#grp').value,
+    se: (() => { const v = parseFloat($('#se').value); return Number.isFinite(v) ? v : null; })(),
+    note: $('#note').value.trim(),
+  };
+}
+
+/* ---------- 측정 프로토콜 (설정 저장 · 잠금 · ID) ---------- */
+// 측정 결과에 영향을 주는 설정. 모니터 대각선은 화면 보정용이라 ID 계산에서는 빠집니다.
+const PROTO_IDS = ['diag', 'dist', 'gap', 'contrast', 'bg', 'flashGray', 'flashSec', 'practice', 'baseline', 'perBlock', 'timeout', 'timepoints', 'iti', 'lateTol'];
+const SKEY = 'lc_settings', LKEY = 'lc_lock';
+let locked = false;
+
+function protoId(S) {
+  const key = JSON.stringify([S.dist, S.gapArc, S.contrast, S.bg, S.flashGray, S.flashMs, S.practice, S.baseline, S.perBlock, S.timeout, S.iti, S.timepoints, S.blockCut, S.lateTol]);
+  let h = 0x811c9dc5;
+  for (let i = 0; i < key.length; i++) { h ^= key.charCodeAt(i); h = Math.imul(h, 0x01000193); }
+  return 'P-' + (h >>> 0).toString(16).padStart(8, '0').slice(0, 6).toUpperCase();
+}
+const protoOf = s => s.protocol || protoId(s.S);
+
+function saveSettings() {
+  const o = {};
+  PROTO_IDS.forEach(id => { o[id] = $('#' + id).value; });
+  try { localStorage.setItem(SKEY, JSON.stringify(o)); } catch (e) {}
+}
+function loadSettings() {
+  try {
+    const o = JSON.parse(localStorage.getItem(SKEY) || 'null');
+    if (o) PROTO_IDS.forEach(id => {
+      if (o[id] == null) return;
+      const el = $('#' + id), old = el.value;
+      el.value = o[id];
+      if (el.tagName === 'SELECT' && el.value !== String(o[id])) el.value = old;
+    });
+  } catch (e) {}
+  try { locked = localStorage.getItem(LKEY) === '1'; } catch (e) {}
+}
+function applyLock() {
+  PROTO_IDS.forEach(id => { $('#' + id).disabled = locked; });
+  document.querySelectorAll('#cPresets button, #btnCal, #btnCalReset, #btnDefaults').forEach(b => { b.disabled = locked; });
+  $('#lockBar').classList.toggle('on', locked);
+  $('#btnLock').textContent = locked ? '잠금 해제' : '설정 잠금';
+  $('#lockState').textContent = locked ? '잠김' : '';
+}
+
+function geom(S) {
+  const ppm = state.calibrated ? state.ppm : Math.hypot(screen.width, screen.height) / (S.diag * 25.4);
+  const distMm = S.dist * 10;
+  const gapMm = distMm * Math.tan(S.gapArc / 60 * Math.PI / 180);
+  const lb = sLin(S.bg);
+  const tgt = linS(lb * (1 - S.contrast / 100));
+  const scrWmm = screen.width / ppm;
+  return {
+    ppm, gapMm, gapPx: gapMm * ppm, diamMm: 5 * gapMm, tgt,
+    actual: (1 - sLin(tgt) / lb) * 100,
+    scrWmm, fov: 2 * Math.atan(scrWmm / 2 / distMm) * 180 / Math.PI,
+  };
+}
+
+function drawLandolt(ctx, cx, cy, g, ori, bg, tgt) {
+  ctx.save();
+  ctx.translate(cx, cy);
+  ctx.rotate(ori * Math.PI / 2);
+  ctx.strokeStyle = rgb(tgt);
+  ctx.lineWidth = g;
+  ctx.beginPath();
+  ctx.arc(0, 0, 2 * g, 0, Math.PI * 2);
+  ctx.stroke();
+  ctx.fillStyle = rgb(bg);
+  ctx.fillRect(1.4 * g, -g / 2, 1.2 * g, g);
+  ctx.restore();
+}
+
+/* ---------- 미리보기 ---------- */
+function updatePreview() {
+  const S = readSettings(), G = geom(S);
+  const cv = $('#pv'), W = cv.clientWidth, H = 200, d = devicePixelRatio || 1;
+  cv.width = W * d; cv.height = H * d;
+  const x = cv.getContext('2d');
+  x.setTransform(d, 0, 0, d, 0, 0);
+  x.fillStyle = rgb(S.bg);
+  x.fillRect(0, 0, W, H);
+  const scale = Math.min(1, (H * 0.8) / (5 * G.gapPx));
+  drawLandolt(x, W / 2, H / 2, G.gapPx * scale, state.pvOri, S.bg, G.tgt);
+
+  const rows = [
+    ['px / mm', `${G.ppm.toFixed(3)} (${state.calibrated ? '카드 보정' : '대각선 추정'})`],
+    ['화면', `${G.scrWmm.toFixed(0)}mm 폭 · 시야각 ${G.fov.toFixed(0)}°`],
+    ['틈', `${S.gapArc}′ = ${G.gapMm.toFixed(2)}mm = ${G.gapPx.toFixed(1)}px`],
+    ['C 지름', `${(5 * S.gapArc / 60).toFixed(2)}° · ${G.diamMm.toFixed(1)}mm`],
+    ['환산 시력', (1 / S.gapArc).toFixed(2)],
+    ['밝기(gray)', `배경 ${S.bg} / C ${G.tgt}`],
+    ['실제 웨버 대비', `${G.actual.toFixed(1)}%`],
+  ];
+  $('#readout').innerHTML = rows.map(r => `<dt>${r[0]}</dt><dd>${esc(r[1])}</dd>`).join('');
+
+  const w = [];
+  if (G.gapPx < 3) w.push('틈이 3px 미만이라 방향 구분이 화면 해상도에 막힙니다. 틈 각도를 키우거나 거리를 늘리세요.');
+  if (Math.abs(G.actual - S.contrast) > Math.max(0.5, S.contrast * 0.2)) w.push(`8비트 계조 한계로 실제 대비(${G.actual.toFixed(1)}%)가 설정(${S.contrast}%)과 다릅니다. 배경을 더 밝게 하면 줄어듭니다.`);
+  if (scale < 1) w.push('미리보기는 실제보다 작게 표시 중입니다 (전체화면 테스트에서 실제 크기 확인).');
+
+  // 시점 간격이 시행 시간보다 짧은지 확인 (응답이 없을 때 한 시행 = 간격 + 제한시간)
+  const worst = (S.iti + S.timeout + 50) / 1000, tps = S.timepoints, short = [];
+  for (let i = 0; i < tps.length - 1; i++) {
+    const win = tps[i + 1] - tps[i];
+    if (S.perBlock * worst <= win + (S.blockCut ? S.lateTol : 0)) continue;
+    short.push({ tp: tps[i], next: tps[i + 1], win, kmin: Math.max(1, Math.min(S.perBlock, Math.floor((win + S.lateTol) / worst))) });
+  }
+  if (short.length && S.blockCut) {
+    w.push({ info: true, t: `응답이 없거나 느리면 ${short.map(x => `${x.tp}초 시점은 최소 ${x.kmin}회`).join(', ')}까지 시행이 줄어듭니다 (설정 ${S.perBlock}회). 다음 시점을 늦지 않게 시작하기 위해서이고, 정답률은 실제 시행 수로 계산됩니다.` });
+  } else if (short.length) {
+    const x = short[0];
+    w.push(`다음 시점 보호가 꺼져 있습니다. ${x.tp}초 시점의 시행 ${S.perBlock}회가 길어지면 ${x.next}초 시점이 최대 약 ${(S.perBlock * worst - x.win).toFixed(1)}초 늦게 시작합니다. 응답이 느린 참가자일수록 늦게 측정되어 결과가 치우칩니다.`);
+  }
+  $('#warns').innerHTML = w.filter(x => !x.info).map(x => typeof x === 'string' ? `<div class="warn">${esc(x)}</div>` : `<div class="warn${x.info ? ' info' : ''}">${esc(x.t)}</div>`).join('');
+
+  $('#calState').textContent = state.calibrated ? '카드 보정값 사용 중' : '대각선 추정값 사용 중';
+  $('#protoId').textContent = protoId(S);
+}
+
+$('#settings').addEventListener('input', () => { saveSettings(); updatePreview(); });
+$('#settings').addEventListener('change', saveSettings);
+addEventListener('resize', () => { if (!running) updatePreview(); });
+document.querySelectorAll('#cPresets button').forEach(b => b.addEventListener('click', () => { if (locked) return; $('#contrast').value = b.dataset.c; saveSettings(); updatePreview(); }));
+$('#btnLock').addEventListener('click', () => {
+  if (locked && !confirm('설정 잠금을 풀까요?\n측정 도중 설정을 바꾸면 바꾸기 전과 후의 기록을 같은 조건으로 비교할 수 없습니다.')) return;
+  locked = !locked;
+  try { localStorage.setItem(LKEY, locked ? '1' : '0'); } catch (e) {}
+  applyLock();
+  updatePreview();
+});
+$('#btnDefaults').addEventListener('click', () => {
+  if (locked || !confirm('측정 설정을 처음 기본값으로 되돌릴까요? (화면 크기 보정과 기록 정보는 그대로 둡니다)')) return;
+  PROTO_IDS.forEach(id => {
+    const el = $('#' + id);
+    if (el.tagName === 'SELECT') { const o = [...el.options].find(x => x.defaultSelected) || el.options[0]; el.value = o.value; }
+    else el.value = el.defaultValue;
+  });
+  saveSettings();
+  updatePreview();
+});
+document.querySelectorAll('#oriBtns button').forEach(b => b.addEventListener('click', () => { state.pvOri = +b.dataset.o; updatePreview(); }));
+
+/* ---------- 화면 크기 보정 ---------- */
+const dlg = $('#cal'), rng = $('#calRange'), bar = $('#calBar');
+const setBar = () => { bar.style.width = rng.value + 'px'; };
+$('#btnCal').addEventListener('click', () => {
+  if (locked) return;
+  const est = Math.hypot(screen.width, screen.height) / (clamp(num('diag', 24), 10, 60) * 25.4) * 85.6;
+  rng.value = clamp(Math.round(state.calibrated ? state.ppm * 85.6 : est), +rng.min, +rng.max);
+  setBar();
+  dlg.showModal();
+});
+rng.addEventListener('input', setBar);
+$('#calCancel').addEventListener('click', () => dlg.close());
+$('#calOk').addEventListener('click', () => {
+  state.ppm = rng.value / 85.6;
+  state.calibrated = true;
+  try { localStorage.setItem('lc_cal', JSON.stringify({ ppm: state.ppm })); } catch (e) {}
+  dlg.close();
+  updatePreview();
+});
+$('#btnCalReset').addEventListener('click', () => {
+  if (locked) return;
+  state.calibrated = false;
+  try { localStorage.removeItem('lc_cal'); } catch (e) {}
+  updatePreview();
+});
+try {
+  const c = JSON.parse(localStorage.getItem('lc_cal') || 'null');
+  if (c && c.ppm > 0) { state.ppm = c.ppm; state.calibrated = true; }
+} catch (e) {}
+
+/* ---------- 전체화면 무대 ---------- */
+const stage = $('#stage'), sc = $('#stageCanvas'), sctx = sc.getContext('2d'), hud = $('#hud');
+let running = null, abortFlag = false, keyHandler = null, testKeyFn = null, exitTestFn = null;
+let redraw = () => {};
+
+const shuffle = a => { for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; };
+let bag = [];
+const nextOri = () => { if (!bag.length) bag = shuffle([0, 1, 2, 3]); return bag.pop(); };
+
+function sizeStage() {
+  const d = devicePixelRatio || 1;
+  sc.width = innerWidth * d; sc.height = innerHeight * d;
+  sctx.setTransform(d, 0, 0, d, 0, 0);
+  redraw();
+}
+addEventListener('resize', () => { if (running) sizeStage(); });
+
+async function enterStage(mode) {
+  running = mode; abortFlag = false;
+  stage.hidden = false;
+  document.body.style.overflow = 'hidden';
+  try { await stage.requestFullscreen(); } catch (e) {}
+  sizeStage();
+}
+function exitStage() {
+  running = null; keyHandler = null; testKeyFn = null; redraw = () => {};
+  stage.hidden = true; hud.hidden = true;
+  document.body.style.overflow = '';
+  if (document.fullscreenElement) document.exitFullscreen().catch(() => {});
+}
+function triggerAbort() { abortFlag = true; if (keyHandler) keyHandler(null, true); }
+document.addEventListener('fullscreenchange', () => {
+  if (document.fullscreenElement || !running) return;
+  if (running === 'session') triggerAbort(); else if (exitTestFn) exitTestFn();
+});
+addEventListener('keydown', e => {
+  if (!running) return;
+  if (running === 'test') { if (testKeyFn) testKeyFn(e); return; }
+  if (e.repeat) return;
+  if (e.key === 'q' || e.key === 'Q' || e.key === 'Escape') { triggerAbort(); return; }
+  if (keyHandler) keyHandler(e, false);
+}, true);
+
+function show(fn) { redraw = fn; fn(); }
+function presentAt(fn) {
+  redraw = fn;
+  return new Promise(res => requestAnimationFrame(() => { fn(); res(performance.now()); }));
+}
+async function sleep(ms) {
+  const end = performance.now() + ms;
+  for (;;) {
+    if (abortFlag) throw new Abort();
+    const left = end - performance.now();
+    if (left <= 0) return;
+    await new Promise(r => setTimeout(r, Math.min(left, 50)));
+  }
+}
+function waitKey(match, timeoutMs) {
+  return new Promise((resolve, reject) => {
+    let to = null;
+    const done = fn => { keyHandler = null; if (to) clearTimeout(to); fn(); };
+    keyHandler = (e, isAbort) => {
+      if (isAbort || abortFlag) return done(() => reject(new Abort()));
+      if (match(e)) { e.preventDefault(); done(() => resolve({ key: e.key, ts: e.timeStamp })); }
+    };
+    if (timeoutMs) to = setTimeout(() => done(() => resolve({ key: null, ts: null })), timeoutMs);
+  });
+}
+const isSpace = e => e.code === 'Space';
+
+const pBg = g => { sctx.fillStyle = rgb(g); sctx.fillRect(0, 0, innerWidth, innerHeight); };
+function pFix(S) {
+  pBg(S.bg);
+  const cx = innerWidth / 2, cy = innerHeight / 2, L = 7;
+  sctx.strokeStyle = rgb(Math.round(S.bg * 0.45)); sctx.lineWidth = 2;
+  sctx.beginPath(); sctx.moveTo(cx - L, cy); sctx.lineTo(cx + L, cy); sctx.moveTo(cx, cy - L); sctx.lineTo(cx, cy + L); sctx.stroke();
+}
+const pC = (S, G, o) => { pBg(S.bg); drawLandolt(sctx, innerWidth / 2, innerHeight / 2, G.gapPx, o, S.bg, G.tgt); };
+const pFlash = S => pBg(S.flashGray);
+function pText(S, lines) {
+  pBg(S.bg);
+  sctx.fillStyle = S.bg >= 128 ? '#1d1d1d' : '#e6e6e6';
+  sctx.textAlign = 'center'; sctx.textBaseline = 'middle';
+  const items = lines.map(l => typeof l === 'string' ? { t: l, s: 30 } : l);
+  const total = items.reduce((a, i) => a + i.s * 1.6, 0);
+  let y = innerHeight / 2 - total / 2;
+  items.forEach(it => {
+    const h = it.s * 1.6;
+    sctx.font = `${it.s}px "IBM Plex Sans KR", "Malgun Gothic", sans-serif`;
+    sctx.fillText(it.t, innerWidth / 2, y + h / 2);
+    y += h;
+  });
+}
+
+/* ---------- 화면 테스트 모드 ---------- */
+async function runTest() {
+  const S = readSettings();
+  const T = { ori: nextOri(), ok: 0, n: 0, last: '', busy: false, hud: true };
+  let G = geom(S);
+  const hudText = () => [
+    `대비 ${S.contrast.toFixed(1)}% (실제 ${G.actual.toFixed(1)}%) · 배경 ${S.bg} · C ${G.tgt}`,
+    `틈 ${S.gapArc}′ = ${G.gapPx.toFixed(1)}px · 환산시력 ${(1 / S.gapArc).toFixed(2)}`,
+    `정답 ${T.ok}/${T.n}${T.last ? '  ' + T.last : ''}`,
+    '[- =]대비  [ [ ] ]틈  [, .]배경  [F]섬광  [Space]새 방향  [H]정보창  [Esc]종료',
+    ...(locked ? ['설정 잠금 중: 여기서 조정한 값은 저장되지 않습니다'] : []),
+  ].join('\n');
+  const paint = () => { G = geom(S); show(() => pC(S, G, T.ori)); hud.textContent = hudText(); hud.hidden = !T.hud; };
+  const adj = (k, v) => { S[k] = v; T.ok = 0; T.n = 0; T.last = ''; paint(); };
+
+  exitTestFn = () => {
+    if (!locked) {
+      $('#contrast').value = +S.contrast.toFixed(1);
+      $('#gap').value = S.gapArc;
+      $('#bg').value = S.bg;
+      saveSettings();
+    }
+    exitTestFn = null;
+    exitStage();
+    updatePreview();
+  };
+  testKeyFn = e => {
+    const k = e.key;
+    if (k === 'Escape' || k === 'q' || k === 'Q') { exitTestFn(); return; }
+    if (T.busy) return;
+    if (isDir(k)) {
+      e.preventDefault();
+      const ok = DIRS[k] === T.ori;
+      T.n++; if (ok) T.ok++;
+      T.last = ok ? '정답' : `오답 (정답 ${ARROW[T.ori]})`;
+      T.ori = nextOri(); paint(); return;
+    }
+    const step = e.shiftKey ? 5 : 1;
+    if (k === ' ') { e.preventDefault(); T.ori = nextOri(); paint(); }
+    else if (k === '-' || k === '_') adj('contrast', clamp(S.contrast - step, 0.5, 100));
+    else if (k === '=' || k === '+') adj('contrast', clamp(S.contrast + step, 0.5, 100));
+    else if (k === '[' || k === '{') adj('gapArc', clamp(S.gapArc - 0.5, 1, 60));
+    else if (k === ']' || k === '}') adj('gapArc', clamp(S.gapArc + 0.5, 1, 60));
+    else if (k === ',' || k === '<') adj('bg', clamp(S.bg - 5, 20, 250));
+    else if (k === '.' || k === '>') adj('bg', clamp(S.bg + 5, 20, 250));
+    else if (k === 'h' || k === 'H') { T.hud = !T.hud; hud.hidden = !T.hud; }
+    else if (k === 'f' || k === 'F') {
+      T.busy = true; hud.hidden = true;
+      show(() => pFlash(S));
+      setTimeout(() => { T.busy = false; if (running === 'test') paint(); }, S.flashMs);
+    }
+  };
+  await enterStage('test');
+  paint();
+}
+
+/* ---------- 측정 세션 ---------- */
+async function runTrial(sess, S, G, phase, ex) {
+  const ori = nextOri();
+  show(() => pFix(S));
+  await sleep(S.iti);
+  const onset = await presentAt(() => pC(S, G, ori));
+  const r = await waitKey(e => isDir(e.key), S.timeout);
+  const rec = {
+    phase, tp: ex.tp, blockStartS: ex.blockStartS, trialNo: ex.trialNo,
+    onsetS: ex.t0 == null ? null : (onset - ex.t0) / 1000,
+    ori, resp: r.key ? DIRS[r.key] : null,
+    correct: r.key ? DIRS[r.key] === ori : false,
+    rt: r.key ? r.ts - onset : null,
+    timeout: !r.key,
+  };
+  sess.trials.push(rec);
+  show(() => pFix(S));
+  return rec;
+}
+
+async function runSession() {
+  const S = readSettings();
+  if (!S.code) { $('#code').focus(); $('#status').textContent = '참여자 코드를 먼저 입력해 주세요 (이름 대신 코드번호).'; return; }
+  $('#status').textContent = '';
+  const G = geom(S);
+  const sess = { startedAt: new Date().toISOString(), S, G, trials: [], aborted: false, calibrated: state.calibrated, protocol: protoId(S), locked };
+  bag = [];
+  let wake = null;
+  try {
+    try { if (navigator.wakeLock) wake = await navigator.wakeLock.request('screen'); } catch (e) {}
+    await enterStage('session');
+    show(() => pText(S, [{ t: '화면 가운데에 C 모양이 나타납니다', s: 34 }, 'C가 벌어진 쪽 방향을 방향키 ← ↑ → ↓ 로 눌러주세요', '정확하게, 되도록 빠르게', '', { t: `${S.eye} 측정입니다. 반대쪽 눈은 가리개로 가려주세요`, s: 26 }, '', { t: '준비되면 스페이스바', s: 26 }]));
+    await waitKey(isSpace);
+
+    for (let i = 1; i <= S.practice; i++) await runTrial(sess, S, G, 'practice', { tp: null, blockStartS: null, trialNo: i, t0: null });
+    if (S.practice > 0) {
+      show(() => pText(S, ['연습이 끝났습니다', '이어서 기준 측정을 시작합니다', '', { t: '스페이스바', s: 26 }]));
+      await waitKey(isSpace);
+    }
+    for (let i = 1; i <= S.baseline; i++) await runTrial(sess, S, G, 'baseline', { tp: 0, blockStartS: null, trialNo: i, t0: null });
+
+    show(() => pText(S, [{ t: '다음에 화면이 몇 초간 매우 밝아집니다', s: 34 }, '눈이 부시거나 불편하면 바로 손을 들어주세요', '', { t: '준비되면 스페이스바', s: 26 }]));
+    await waitKey(isSpace);
+    for (let i = 3; i >= 1; i--) { show(() => pText(S, ['밝은 화면이 나옵니다', { t: String(i), s: 96 }])); await sleep(1000); }
+    show(() => pFlash(S));
+    await sleep(S.flashMs);
+    const t0 = await presentAt(() => pFix(S));
+
+    // 응답이 없을 때 한 시행이 걸리는 최대 시간. 다음 시행이 다음 시점(+허용 지연)을 넘길 수 있으면 블록을 끊습니다.
+    const worst = S.iti + S.timeout + 50;
+    for (let b = 0; b < S.timepoints.length; b++) {
+      const tp = S.timepoints[b], next = S.timepoints[b + 1];
+      const wait = t0 + tp * 1000 - performance.now();
+      if (wait > 0) await sleep(wait);
+      const blockStartS = (performance.now() - t0) / 1000;
+      const deadline = S.blockCut && next != null ? t0 + (next + S.lateTol) * 1000 : Infinity;
+      for (let i = 1; i <= S.perBlock; i++) {
+        if (i > 1 && performance.now() + worst > deadline) break;
+        await runTrial(sess, S, G, 'recovery', { tp, blockStartS, trialNo: i, t0 });
+      }
+      show(() => pFix(S));
+    }
+    show(() => pText(S, ['측정이 끝났습니다', '수고하셨습니다']));
+    await sleep(1500);
+  } catch (err) {
+    sess.aborted = true;
+    if (!(err instanceof Abort)) { sess.error = String(err); console.error(err); }
+  } finally {
+    exitStage();
+    if (wake) wake.release().catch(() => {});
+  }
+  finish(sess);
+}
+
+/* ---------- 요약 · 결과 ---------- */
+function summarize(sess) {
+  const T = sess.trials;
+  const mean = a => a.length ? a.reduce((x, y) => x + y, 0) / a.length : null;
+  const rtOf = a => mean(a.filter(t => t.correct && t.rt != null).map(t => t.rt));
+  const base = T.filter(t => t.phase === 'baseline');
+  const accB = base.length ? base.filter(t => t.correct).length / base.length : null;
+  const rtB = rtOf(base);
+  const rows = [];
+  for (const tp of sess.S.timepoints) {
+    const tr = T.filter(t => t.phase === 'recovery' && t.tp === tp);
+    if (!tr.length) continue;
+    const acc = tr.filter(t => t.correct).length / tr.length;
+    const rt = rtOf(tr);
+    rows.push({
+      tp, n: tr.length, acc, rt, late: tr[0].blockStartS - tp,
+      accDef: accB == null ? null : Math.max(0, accB - acc),
+      rtEx: rt == null || rtB == null ? null : Math.max(0, rt - rtB),
+    });
+  }
+  const sum = k => rows.reduce((s, r) => r[k] == null ? s : s + r[k], 0);
+  const auc = k => { let a = 0; for (let i = 0; i < rows.length - 1; i++) { const p = rows[i], q = rows[i + 1]; if (p[k] != null && q[k] != null) a += (p[k] + q[k]) / 2 * (q.tp - p.tp); } return a; };
+  return { nB: base.length, accB, rtB, rows, accSum: sum('accDef'), rtSum: sum('rtEx'), accAuc: auc('accDef'), rtAuc: auc('rtEx') };
+}
+
+let hist = [];
+let lastSaveOk = true;
+
+function finish(sess) {
+  sess.summary = summarize(sess);
+  sess.id = Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
+  state.last = sess;
+  lastSaveOk = true;
+  if (sess.trials.some(t => t.phase !== 'practice')) {
+    hist.push(sess);
+    lastSaveOk = saveHist(hist);
+  }
+  try { localStorage.setItem('lc_last', JSON.stringify(sess)); $('#lastWrap').hidden = false; } catch (e) {}
+  renderResults(sess);
+  renderAnalysis();
+  updatePreview();
+  $('#results').scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+const pct = v => v == null ? '—' : (v * 100).toFixed(0) + '%';
+const ms = v => v == null ? '—' : v.toFixed(0);
+
+function renderResults(sess) {
+  const S = sess.S, M = sess.summary;
+  const sec = $('#results');
+  const trialsDone = sess.trials.filter(t => t.phase !== 'practice').length;
+  const rowsHtml = [
+    `<tr><td>기준</td><td>${M.nB}</td><td>${pct(M.accB)}</td><td>${ms(M.rtB)}</td><td>—</td><td>—</td><td>—</td></tr>`,
+    ...M.rows.map(r => `<tr><td>${r.tp}s</td><td>${r.n}${r.n < S.perBlock ? '/' + S.perBlock : ''}</td><td>${pct(r.acc)}</td><td>${ms(r.rt)}</td><td>${r.accDef == null ? '—' : (r.accDef * 100).toFixed(0) + '%p'}</td><td>${r.rtEx == null ? '—' : r.rtEx.toFixed(0)}</td><td>${r.late.toFixed(1)}s</td></tr>`),
+  ].join('');
+  const lateLim = S.blockCut ? S.lateTol + 0.5 : 1.5;
+  const late = M.rows.some(r => r.late > lateLim);
+  const cut = M.rows.filter((r, i) => i < M.rows.length - 1 && r.n < S.perBlock);
+  sec.innerHTML = `
+    <h2>측정 결과</h2>
+    <div class="res-head">
+      <span>코드 <b>${esc(S.code)}</b></span><span>눈 <b>${esc(S.eye)}</b></span><span>조건 <b>${esc(condLong(S.cond))}</b></span><span>회차 <b>${esc(S.sess)}</b></span>${S.group ? `<span>군 <b>${esc(GLABEL[S.group] || S.group)}</b></span>` : ''}${S.se == null ? '' : `<span>SE <b>${S.se.toFixed(2)}D</b></span>`}
+      <span>본 시행 <b>${trialsDone}</b>회</span><span>프로토콜 <b class="mono">${esc(protoOf(sess))}</b>${sess.locked === false ? ' (잠금 안 됨)' : ''}</span>${sess.aborted ? '<span style="color:var(--warn-ink)"><b>중단됨 — 부분 데이터</b></span>' : ''}
+    </div>
+    ${late ? `<div class="warn" style="margin-bottom:10px">일부 시점 블록이 예정보다 ${lateLim.toFixed(1)}초 넘게 늦게 시작했습니다. ${S.blockCut ? '측정 중 컴퓨터가 잠깐 멈췄을 수 있으니 이 세션은 다시 측정하는 것을 고려하세요.' : '앞 블록이 길어진 경우입니다. 설정의 "다음 시점 보호"를 켜세요.'}</div>` : ''}
+    ${cut.length && !sess.aborted ? `<div class="warn info" style="margin-bottom:10px">다음 시점을 제때 시작하려고 ${cut.map(r => r.tp + '초').join(', ')} 시점의 시행 수를 줄였습니다 (시행 열의 n/${S.perBlock}). 정답률과 평균 RT는 실제로 한 시행 수로 계산했습니다.</div>` : ''}
+    ${lastSaveOk ? '' : '<div class="warn" style="margin-bottom:10px">브라우저 저장공간이 부족해 누적 기록에 저장하지 못했습니다. 아래 CSV를 꼭 저장하고, 분석 영역에서 오래된 기록을 정리하세요.</div>'}
+    <div class="table-wrap"><table class="res"><thead><tr><th>시점</th><th>시행</th><th>정답률</th><th>평균 RT ms</th><th>Δ정답률</th><th>ΔRT ms</th><th>시작 지연</th></tr></thead><tbody>${rowsHtml}</tbody></table></div>
+    <div class="charts">
+      <div><h3>정답률</h3><canvas id="chAcc"></canvas></div>
+      <div><h3>반응시간</h3><canvas id="chRt"></canvas></div>
+    </div>
+    <div class="sums">
+      <div><span>정답률 Σ</span><b>${(M.accSum * 100).toFixed(0)} %p</b></div>
+      <div><span>RT Σ</span><b>${M.rtSum.toFixed(0)} ms</b></div>
+      <div><span>정답률 면적</span><b>${(M.accAuc * 100).toFixed(0)} %p·s</b></div>
+      <div><span>RT 면적</span><b>${M.rtAuc.toFixed(0)} ms·s</b></div>
+    </div>
+    <div class="res-actions"><button type="button" class="primary" id="dlTrials" style="padding:8px 14px">시행 로그 CSV 저장</button><button type="button" class="primary" id="dlSum" style="padding:8px 14px">요약 CSV 저장</button></div>`;
+  sec.hidden = false;
+  const rts = M.rows.map(r => r.rt).filter(v => v != null).concat(M.rtB == null ? [] : [M.rtB]);
+  drawChart($('#chAcc'), M.rows.map(r => ({ x: r.tp, y: r.acc * 100 })), { yMax: 100, base: M.accB == null ? null : M.accB * 100, chance: 25, unit: '%' });
+  drawChart($('#chRt'), M.rows.map(r => ({ x: r.tp, y: r.rt })), { yMax: Math.ceil(Math.max(500, ...rts) * 1.2 / 100) * 100, base: M.rtB, chance: null, unit: '' });
+  $('#dlTrials').addEventListener('click', () => downloadTrials(sess));
+  $('#dlSum').addEventListener('click', () => downloadSummary(sess));
+}
+
+function drawChart(cv, pts, o) {
+  const css = getComputedStyle(document.documentElement), c = n => css.getPropertyValue(n).trim();
+  const W = cv.clientWidth, H = 190, d = devicePixelRatio || 1;
+  cv.width = W * d; cv.height = H * d;
+  const x = cv.getContext('2d');
+  x.setTransform(d, 0, 0, d, 0, 0);
+  const L = 46, R = 14, Tm = 12, B = 26, pw = W - L - R, ph = H - Tm - B;
+  const xMax = Math.max(1, ...pts.map(p => p.x)) * 1.05;
+  const X = v => L + v / xMax * pw, Y = v => Tm + ph - Math.min(v, o.yMax) / o.yMax * ph;
+  x.font = '11px "JetBrains Mono", monospace';
+  x.strokeStyle = c('--border'); x.lineWidth = 1;
+  for (let i = 0; i <= 4; i++) {
+    const v = o.yMax * i / 4, yy = Y(v);
+    x.beginPath(); x.moveTo(L, yy); x.lineTo(W - R, yy); x.stroke();
+    x.fillStyle = c('--ink-faint'); x.textAlign = 'right'; x.textBaseline = 'middle'; x.fillText(Math.round(v) + o.unit, L - 6, yy);
+  }
+  x.textAlign = 'center'; x.textBaseline = 'top';
+  pts.forEach(p => x.fillText(p.x + 's', X(p.x), H - B + 8));
+  const hline = (v, col, label) => {
+    x.save(); x.setLineDash([5, 4]); x.strokeStyle = col; x.beginPath(); x.moveTo(L, Y(v)); x.lineTo(W - R, Y(v)); x.stroke(); x.restore();
+    x.fillStyle = col; x.textAlign = 'right'; x.textBaseline = 'bottom'; x.fillText(label, W - R, Y(v) - 3);
+  };
+  if (o.chance != null) hline(o.chance, c('--ink-faint'), '우연 수준');
+  if (o.base != null) hline(o.base, c('--accent2'), '기준');
+  const v = pts.filter(p => p.y != null);
+  if (!v.length) return;
+  x.strokeStyle = c('--accent'); x.lineWidth = 2; x.beginPath();
+  v.forEach((p, i) => i ? x.lineTo(X(p.x), Y(p.y)) : x.moveTo(X(p.x), Y(p.y)));
+  x.stroke();
+  x.fillStyle = c('--accent');
+  v.forEach(p => { x.beginPath(); x.arc(X(p.x), Y(p.y), 3.5, 0, Math.PI * 2); x.fill(); });
+}
+
+/* ---------- CSV ---------- */
+const q = v => { if (v == null) return ''; const s = String(v); return /[",\r\n]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s; };
+const toCsv = (hdr, rows) => '﻿' + [hdr, ...rows].map(r => r.map(q).join(',')).join('\r\n');
+const fix = (v, n) => v == null ? '' : v.toFixed(n);
+function download(name, text, type) {
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([text], { type: type || 'text/csv;charset=utf-8' }));
+  a.download = name;
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(a.href), 3000);
+}
+function baseName(sess) {
+  const S = sess.S, st = sess.startedAt.replace(/[-:]/g, '').slice(0, 15);
+  return [S.code, S.eye, S.cond, S.sess, st].join('_').replace(/[^\w가-힣-]+/g, '_');
+}
+const TRIAL_HDR = ['code', 'group', 'se_d', 'eye', 'condition', 'session_no', 'started_at', 'protocol_id', 'phase', 'tp_sched_s', 'block_start_s', 'trial_onset_s', 'trial_no', 'gap_dir', 'response', 'correct', 'rt_ms', 'timeout', 'dist_cm', 'gap_arcmin', 'gap_px', 'contrast_set_pct', 'contrast_actual_pct', 'bg_gray', 'target_gray', 'flash_gray', 'flash_ms', 'px_per_mm', 'calibrated', 'aborted', 'note'];
+function trialRows(sess) {
+  const S = sess.S, G = sess.G, cal = sess.calibrated === undefined ? state.calibrated : sess.calibrated;
+  const pid = protoOf(sess);
+  return sess.trials.map(t => [S.code, S.group || '', S.se == null ? '' : S.se, S.eye, S.cond, S.sess, sess.startedAt, pid, t.phase, t.tp, fix(t.blockStartS, 3), fix(t.onsetS, 3), t.trialNo, ORI_CODE[t.ori], t.resp == null ? '' : ORI_CODE[t.resp], t.correct ? 1 : 0, fix(t.rt, 1), t.timeout ? 1 : 0, S.dist, S.gapArc, G.gapPx.toFixed(2), S.contrast, G.actual.toFixed(2), S.bg, G.tgt, S.flashGray, S.flashMs, G.ppm.toFixed(4), cal ? 1 : 0, sess.aborted ? 1 : 0, S.note]);
+}
+function downloadTrials(sess) {
+  download(baseName(sess) + '_trials.csv', toCsv(TRIAL_HDR, trialRows(sess)));
+}
+function downloadSummary(sess) {
+  const S = sess.S, M = sess.summary;
+  const hdr = ['code', 'group', 'se_d', 'eye', 'condition', 'session_no', 'started_at', 'protocol_id', 'aborted', 'dist_cm', 'gap_arcmin', 'contrast_pct', 'bg_gray', 'flash_gray', 'flash_ms', 'base_n', 'base_acc', 'base_rt_ms'];
+  const row = [S.code, S.group || '', S.se == null ? '' : S.se, S.eye, S.cond, S.sess, sess.startedAt, protoOf(sess), sess.aborted ? 1 : 0, S.dist, S.gapArc, S.contrast, S.bg, S.flashGray, S.flashMs, M.nB, fix(M.accB, 4), fix(M.rtB, 1)];
+  S.timepoints.forEach(tp => {
+    const r = M.rows.find(x => x.tp === tp);
+    hdr.push('n_' + tp, 'acc_' + tp, 'rt_' + tp);
+    row.push(r ? r.n : '', r ? r.acc.toFixed(4) : '', r ? fix(r.rt, 1) : '');
+  });
+  hdr.push('acc_deficit_sum', 'rt_excess_sum_ms', 'acc_deficit_auc', 'rt_excess_auc', 'note');
+  row.push(M.accSum.toFixed(4), M.rtSum.toFixed(1), M.accAuc.toFixed(4), M.rtAuc.toFixed(1), S.note);
+  download(baseName(sess) + '_summary.csv', toCsv(hdr, [row]));
+}
+
+/* ---------- 누적 기록 · 분석 ---------- */
+const HKEY = 'lc_hist';
+const GROUPS = ['G1', 'G2', 'G3', ''];
+const GLABEL = { 'G1': '1군', 'G2': '2군', 'G3': '3군', '': '미지정' };
+const GCOL = { 'G1': 'var(--accent)', 'G2': 'var(--accent2)', 'G3': '#8a7bb5', '': 'var(--ink-faint)' };
+const condLong = c => { const o = [...$('#cond').options].find(x => x.value === c); return o ? o.text : c; };
+const condShort = c => condLong(c).replace(/^실험\d · /, '');
+const grpOf = s => s.S.group || '';
+const seOf = s => (s.S.se == null || s.S.se === '') ? null : +s.S.se;
+const dt = iso => { const d = new Date(iso); return `${d.getMonth() + 1}/${d.getDate()} ${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`; };
+
+const avg = a => a.length ? a.reduce((x, y) => x + y, 0) / a.length : null;
+const sdev = a => { if (a.length < 2) return null; const m = avg(a); return Math.sqrt(a.reduce((s, v) => s + (v - m) ** 2, 0) / (a.length - 1)); };
+const pearson = (x, y) => {
+  const n = x.length; if (n < 3) return null;
+  const mx = avg(x), my = avg(y); let sxy = 0, sxx = 0, syy = 0;
+  for (let i = 0; i < n; i++) { sxy += (x[i] - mx) * (y[i] - my); sxx += (x[i] - mx) ** 2; syy += (y[i] - my) ** 2; }
+  return sxx && syy ? sxy / Math.sqrt(sxx * syy) : null;
+};
+const cohenD = (a, b) => {
+  const na = a.length, nb = b.length; if (na < 2 || nb < 2) return null;
+  const sa = sdev(a), sb = sdev(b), sp = Math.sqrt(((na - 1) * sa * sa + (nb - 1) * sb * sb) / (na + nb - 2));
+  return sp ? (avg(a) - avg(b)) / sp : null;
+};
+const fmt = (a, d) => a.length ? avg(a).toFixed(d) + (a.length > 1 ? ' ± ' + sdev(a).toFixed(d) : '') : '—';
+const num2 = (v, d) => v == null ? '—' : v.toFixed(d);
+
+function loadHist() { try { const h = JSON.parse(localStorage.getItem(HKEY) || '[]'); return Array.isArray(h) ? h : []; } catch (e) { return []; } }
+function saveHist(h) { try { localStorage.setItem(HKEY, JSON.stringify(h)); return true; } catch (e) { return false; } }
+hist = loadHist();
+
+function poolSessions() {
+  const cf = $('#fCond').value, pf = $('#fProto').value || 'ALL', ex = $('#fAborted').checked;
+  return hist.filter(s => !s.excluded && s.summary && s.summary.rows.length && (!ex || !s.aborted) && (cf === 'ALL' || s.S.cond === cf) && (pf === 'ALL' || protoOf(s) === pf));
+}
+function refreshProtoFilter() {
+  const sel = $('#fProto'), cur = sel.value || 'ALL', cnt = new Map();
+  hist.forEach(s => { const p = protoOf(s); cnt.set(p, (cnt.get(p) || 0) + 1); });
+  sel.innerHTML = '<option value="ALL">전체</option>' + [...cnt].map(([p, n]) => `<option value="${esc(p)}">${esc(p)} (${n}개)</option>`).join('');
+  sel.value = cnt.has(cur) ? cur : 'ALL';
+}
+function firstOnly(pool) {
+  const best = new Map();
+  pool.forEach(s => {
+    const k = [s.S.code, s.S.eye, s.S.cond].join('|'), b = best.get(k);
+    const better = !b || (s.S.sess === '1차' && b.S.sess !== '1차') || (s.S.sess === b.S.sess && s.startedAt < b.startedAt);
+    if (better) best.set(k, s);
+  });
+  return pool.filter(s => best.get([s.S.code, s.S.eye, s.S.cond].join('|')) === s);
+}
+function analysisPools() {
+  const pool = poolSessions();
+  const main = $('#fFirst').checked ? firstOnly(pool) : pool;
+  return { pool, main, rm: rrdiMap(pool, main) };
+}
+function rrdiMap(pool, ref) {
+  const m = new Map();
+  ref = ref || pool;
+  if (ref.length < 3) return m;
+  const a = ref.map(s => s.summary.accAuc), r = ref.map(s => s.summary.rtAuc);
+  const ma = avg(a), mr = avg(r), sa = sdev(a), sr = sdev(r);
+  pool.forEach(s => {
+    const za = sa ? (s.summary.accAuc - ma) / sa : 0, zr = sr ? (s.summary.rtAuc - mr) / sr : 0;
+    m.set(s.id, { za, zr, rrdi: za + zr });
+  });
+  return m;
+}
+
+function drawMulti(cv, series, o) {
+  const css = getComputedStyle(document.documentElement), c = n => css.getPropertyValue(n).trim();
+  const col = v => /^var\(/.test(v) ? c(v.slice(4, -1)) : v;
+  const W = cv.clientWidth || 400, H = 190, d = devicePixelRatio || 1;
+  cv.width = W * d; cv.height = H * d;
+  const x = cv.getContext('2d');
+  x.setTransform(d, 0, 0, d, 0, 0);
+  const L = 46, R = 14, Tm = 12, B = 26, pw = W - L - R, ph = H - Tm - B;
+  const xs = [...new Set(series.flatMap(s => s.pts.map(p => p.x)))].sort((a, b) => a - b);
+  const xMax = Math.max(1, ...xs) * 1.05;
+  const all = series.flatMap(s => s.pts.map(p => p.y).concat(s.base == null ? [] : [s.base]));
+  const yMax = o.yMax || Math.max(1, ...all) * 1.15;
+  const X = v => L + v / xMax * pw, Y = v => Tm + ph - Math.min(v, yMax) / yMax * ph;
+  x.font = '11px "JetBrains Mono", monospace';
+  x.strokeStyle = c('--border'); x.lineWidth = 1;
+  for (let i = 0; i <= 4; i++) {
+    const v = yMax * i / 4, yy = Y(v);
+    x.beginPath(); x.moveTo(L, yy); x.lineTo(W - R, yy); x.stroke();
+    x.fillStyle = c('--ink-faint'); x.textAlign = 'right'; x.textBaseline = 'middle'; x.fillText(Math.round(v) + (o.unit || ''), L - 6, yy);
+  }
+  x.textAlign = 'center'; x.textBaseline = 'top';
+  xs.forEach(v => x.fillText(v + 's', X(v), H - B + 8));
+  series.forEach(s => {
+    const color = col(s.color);
+    if (s.base != null) { x.save(); x.setLineDash([4, 4]); x.globalAlpha = .55; x.strokeStyle = color; x.beginPath(); x.moveTo(L, Y(s.base)); x.lineTo(W - R, Y(s.base)); x.stroke(); x.restore(); }
+    if (!s.pts.length) return;
+    x.strokeStyle = color; x.lineWidth = 2; x.beginPath();
+    s.pts.forEach((p, i) => i ? x.lineTo(X(p.x), Y(p.y)) : x.moveTo(X(p.x), Y(p.y)));
+    x.stroke(); x.fillStyle = color;
+    s.pts.forEach(p => { x.beginPath(); x.arc(X(p.x), Y(p.y), 3.5, 0, Math.PI * 2); x.fill(); });
+  });
+}
+
+function drawScatter(cv, pts) {
+  const css = getComputedStyle(document.documentElement), c = n => css.getPropertyValue(n).trim();
+  const col = v => /^var\(/.test(v) ? c(v.slice(4, -1)) : v;
+  const W = cv.clientWidth || 400, H = 190, d = devicePixelRatio || 1;
+  cv.width = W * d; cv.height = H * d;
+  const x = cv.getContext('2d');
+  x.setTransform(d, 0, 0, d, 0, 0);
+  const L = 46, R = 14, Tm = 12, B = 26, pw = W - L - R, ph = H - Tm - B;
+  const xs = pts.map(p => p.x), ys = pts.map(p => p.y);
+  let x0 = Math.min(...xs), x1 = Math.max(...xs);
+  if (x1 - x0 < 1) { x0 -= .5; x1 += .5; }
+  const px = (x1 - x0) * .08; x0 -= px; x1 += px;
+  let y0 = Math.min(0, ...ys), y1 = Math.max(0, ...ys);
+  const py = (y1 - y0 || 1) * .12; y0 -= py; y1 += py;
+  const X = v => L + (v - x0) / (x1 - x0) * pw, Y = v => Tm + ph - (v - y0) / (y1 - y0) * ph;
+  x.font = '11px "JetBrains Mono", monospace';
+  x.strokeStyle = c('--border'); x.lineWidth = 1;
+  for (let i = 0; i <= 4; i++) {
+    const v = y0 + (y1 - y0) * i / 4, yy = Y(v);
+    x.beginPath(); x.moveTo(L, yy); x.lineTo(W - R, yy); x.stroke();
+    x.fillStyle = c('--ink-faint'); x.textAlign = 'right'; x.textBaseline = 'middle'; x.fillText(v.toFixed(1), L - 6, yy);
+    const xv = x0 + (x1 - x0) * i / 4;
+    x.textAlign = 'center'; x.textBaseline = 'top'; x.fillText(xv.toFixed(1), X(xv), H - B + 8);
+  }
+  if (y0 < 0 && y1 > 0) { x.strokeStyle = c('--ink-faint'); x.beginPath(); x.moveTo(L, Y(0)); x.lineTo(W - R, Y(0)); x.stroke(); }
+  if (pts.length >= 3) {
+    const mx = avg(xs), my = avg(ys); let sxy = 0, sxx = 0;
+    pts.forEach(p => { sxy += (p.x - mx) * (p.y - my); sxx += (p.x - mx) ** 2; });
+    if (sxx) {
+      const b = sxy / sxx, a = my - b * mx;
+      x.save(); x.setLineDash([5, 4]); x.strokeStyle = c('--ink-faint'); x.beginPath();
+      x.moveTo(X(x0), Y(a + b * x0)); x.lineTo(X(x1), Y(a + b * x1)); x.stroke(); x.restore();
+    }
+  }
+  pts.forEach(p => { x.fillStyle = col(p.color); x.beginPath(); x.arc(X(p.x), Y(p.y), 4.5, 0, Math.PI * 2); x.fill(); });
+}
+
+function legendHtml(items) { return `<div class="lg">${items.map(i => `<span><i style="background:${i.color}"></i>${esc(i.name)}</span>`).join('')}</div>`; }
+
+function renderAnalysis() {
+  const body = $('#anBody');
+  if (!hist.length) {
+    body.innerHTML = '<p class="note">저장된 기록이 없습니다.</p>';
+    $('#anNote').textContent = '';
+    refreshProtoFilter();
+    return;
+  }
+  refreshProtoFilter();
+  const { pool, main, rm } = analysisPools(), inPool = new Set(pool.map(s => s.id));
+  $('#anNote').textContent = `기록 ${hist.length}개 · 분석 대상 ${pool.length}개 · 군 비교·표준화 기준 ${main.length}개` + (main.length < 3 ? ' · RRDI는 기준 3개 이상부터' : '');
+
+  const sessRows = hist.slice().sort((a, b) => a.startedAt < b.startedAt ? 1 : -1).map(s => {
+    const M = s.summary, o = rm.get(s.id), se = seOf(s);
+    return `<tr class="${inPool.has(s.id) ? '' : 'dim'}"><td><input type="checkbox" data-inc="${esc(s.id)}" ${s.excluded ? '' : 'checked'} title="분석에 포함"></td><td>${esc(s.S.code)}${s.aborted ? ' <span class="tag">중단</span>' : ''}</td><td>${esc(GLABEL[grpOf(s)] || '')}</td><td>${se == null ? '—' : se.toFixed(2)}</td><td>${esc(s.S.eye)}</td><td>${esc(condShort(s.S.cond))}</td><td>${esc(s.S.sess)}</td><td>${dt(s.startedAt)}</td><td class="mono">${esc(protoOf(s))}</td><td>${pct(M.accB)}</td><td>${(M.accAuc * 100).toFixed(0)}</td><td>${M.rtAuc.toFixed(0)}</td><td>${o ? o.rrdi.toFixed(2) : '—'}</td><td><button type="button" data-del="${esc(s.id)}" title="삭제" style="padding:1px 7px">✕</button></td></tr>`;
+  }).join('');
+  const protos = new Map();
+  pool.forEach(s => { const p = protoOf(s); protos.set(p, (protos.get(p) || 0) + 1); });
+  let html = protos.size > 1 ? `<div class="warn" style="margin:4px 0 8px">분석 대상에 서로 다른 설정으로 측정한 세션이 섞여 있습니다: ${[...protos].map(([p, n]) => `${esc(p)} ${n}개`).join(', ')}. 위의 "프로토콜"에서 본 측정에 쓴 ID 하나를 고르세요. 예비 측정이나 설정을 바꾸기 전 기록은 빼는 것이 맞습니다.</div>` : '';
+  html += `<h3 class="an" style="margin-top:6px">세션 목록</h3><div class="tbl-scroll"><table class="res sess"><thead><tr><th></th><th>코드</th><th>군</th><th>SE(D)</th><th>눈</th><th>조건</th><th>회차</th><th>일시</th><th>프로토콜</th><th>기준 정답률</th><th>정답률 면적 %p·s</th><th>RT 면적 ms·s</th><th>RRDI</th><th></th></tr></thead><tbody>${sessRows}</tbody></table></div>`;
+
+  const gs = GROUPS.map(g => {
+    const ss = main.filter(s => grpOf(s) === g);
+    return { g, ss, n: ss.length, acc: ss.map(s => s.summary.accAuc * 100), rt: ss.map(s => s.summary.rtAuc), rr: ss.map(s => rm.get(s.id)).filter(Boolean).map(o => o.rrdi) };
+  }).filter(x => x.n);
+  if (gs.length) {
+    html += `<h3 class="an">군별 비교 (평균 ± SD)</h3><div class="table-wrap"><table class="res"><thead><tr><th>군</th><th>n</th><th>정답률 면적 %p·s</th><th>RT 면적 ms·s</th><th>RRDI</th></tr></thead><tbody>${gs.map(x => `<tr><td><span class="dot" style="background:${GCOL[x.g]}"></span>${esc(GLABEL[x.g])}</td><td>${x.n}</td><td>${fmt(x.acc, 0)}</td><td>${fmt(x.rt, 0)}</td><td>${fmt(x.rr, 2)}</td></tr>`).join('')}</tbody></table></div>`;
+    const hi = gs.find(x => x.g === 'G1'), lo = gs.find(x => x.g === 'G3');
+    if (hi && lo) {
+      const dd = cohenD(hi.rr, lo.rr);
+      html += `<p class="note">1군 vs 3군 RRDI Cohen's d = ${dd == null ? '—' : dd.toFixed(2)}</p>`;
+    }
+    const tps = [...new Set(main.flatMap(s => s.summary.rows.map(r => r.tp)))].sort((a, b) => a - b);
+    const curves = gs.map(x => {
+      const mk = key => tps.map(tp => { const v = x.ss.map(s => s.summary.rows.find(r => r.tp === tp)).filter(r => r && r[key] != null).map(r => key === 'acc' ? r[key] * 100 : r[key]); return v.length ? { x: tp, y: avg(v) } : null; }).filter(Boolean);
+      return { g: x.g, name: `${GLABEL[x.g]} (n=${x.n})`, color: GCOL[x.g], acc: mk('acc'), rt: mk('rt'), baseAcc: avg(x.ss.map(s => s.summary.accB).filter(v => v != null)), baseRt: avg(x.ss.map(s => s.summary.rtB).filter(v => v != null)) };
+    });
+    html += `<h3 class="an">군별 평균</h3>${legendHtml(curves.map(c => ({ name: c.name, color: c.color.startsWith('var(') ? getComputedStyle(document.documentElement).getPropertyValue(c.color.slice(4, -1)) : c.color })))}<div class="charts"><div><h3>정답률 (%)</h3><canvas id="gAcc"></canvas></div><div><h3>반응시간 (ms, 정답 시행)</h3><canvas id="gRt"></canvas></div></div>`;
+    renderAnalysis._curves = curves;
+  } else { renderAnalysis._curves = null; }
+
+  const sePts = main.map(s => ({ s, se: seOf(s), o: rm.get(s.id) })).filter(p => p.se != null && p.o).map(p => ({ x: p.se, y: p.o.rrdi, color: GCOL[grpOf(p.s)] }));
+  if (sePts.length >= 3) {
+    const r = pearson(sePts.map(p => p.x), sePts.map(p => p.y));
+    html += `<h3 class="an">SE · RRDI</h3><div class="charts"><div><canvas id="gSE"></canvas></div><div><p class="note" style="margin-top:0">Pearson r = <b>${r == null ? '—' : r.toFixed(2)}</b> (n=${sePts.length})</p></div></div>`;
+    renderAnalysis._se = sePts;
+  } else { renderAnalysis._se = null; }
+
+  const by = new Map();
+  pool.forEach(s => { const k = [s.S.code, s.S.eye, s.S.cond].join('|'); if (!by.has(k)) by.set(k, {}); const e = by.get(k); if (!e[s.S.sess] || e[s.S.sess].startedAt < s.startedAt) e[s.S.sess] = s; });
+  const pairs = [...by.values()].filter(e => e['1차'] && e['2차']).map(e => [e['1차'], e['2차']]);
+  if (pairs.length) {
+    const metrics = [['정답률 면적 %p·s', s => s.summary.accAuc * 100, 0], ['RT 면적 ms·s', s => s.summary.rtAuc, 0], ['RRDI', s => rm.has(s.id) ? rm.get(s.id).rrdi : null, 2]];
+    const trs = metrics.map(([name, f, dg]) => {
+      const pr = pairs.map(p => [f(p[0]), f(p[1])]).filter(p => p[0] != null && p[1] != null);
+      const r = pearson(pr.map(p => p[0]), pr.map(p => p[1]));
+      return `<tr><td>${name}</td><td>${pr.length}</td><td>${r == null ? '쌍 3개 필요' : r.toFixed(2)}</td><td>${pr.length ? avg(pr.map(p => Math.abs(p[0] - p[1]))).toFixed(dg) : '—'}</td></tr>`;
+    }).join('');
+    html += `<h3 class="an">1차 vs 2차 (${pairs.length}쌍)</h3><div class="table-wrap"><table class="res"><thead><tr><th>지표</th><th>쌍</th><th>상관 r</th><th>평균 절대차</th></tr></thead><tbody>${trs}</tbody></table></div>`;
+  }
+
+  const byE = new Map();
+  pool.forEach(s => { const k = [s.S.code, s.S.cond, s.S.sess].join('|'); if (!byE.has(k)) byE.set(k, {}); const e = byE.get(k); if (!e[s.S.eye] || e[s.S.eye].startedAt < s.startedAt) e[s.S.eye] = s; });
+  const eyes = [...byE.entries()].filter(([, e]) => e['우안'] && e['좌안']);
+  if (eyes.length) {
+    const rows = eyes.map(([k, e]) => {
+      const [code, cond, sn] = k.split('|'), R = e['우안'], Lf = e['좌안'], ro = rm.get(R.id), lo = rm.get(Lf.id);
+      return `<tr><td>${esc(code)} · ${esc(condShort(cond))} · ${esc(sn)}</td><td>${(R.summary.accAuc * 100).toFixed(0)} / ${(Lf.summary.accAuc * 100).toFixed(0)}</td><td>${R.summary.rtAuc.toFixed(0)} / ${Lf.summary.rtAuc.toFixed(0)}</td><td>${ro && lo ? Math.abs(ro.rrdi - lo.rrdi).toFixed(2) : '—'}</td></tr>`;
+    }).join('');
+    html += `<h3 class="an">좌우안 차이 (우 / 좌)</h3><div class="table-wrap"><table class="res"><thead><tr><th>참여자 · 조건 · 회차</th><th>정답률 면적</th><th>RT 면적</th><th>|ΔRRDI|</th></tr></thead><tbody>${rows}</tbody></table></div>`;
+  }
+
+  const ex = $('#fAborted').checked;
+  const allOk = hist.filter(s => !s.excluded && s.summary && (!ex || !s.aborted));
+  const conds = [...new Set(allOk.map(s => s.S.cond))];
+  if (conds.length) {
+    const rows = conds.map(cn => {
+      const ss = allOk.filter(s => s.S.cond === cn);
+      return `<tr><td>${esc(condShort(cn))}</td><td>${ss.length}</td><td>${pct(avg(ss.map(s => s.summary.accB).filter(v => v != null)))}</td><td>${num2(avg(ss.map(s => s.summary.rtB).filter(v => v != null)), 0)}</td><td>${(avg(ss.map(s => s.summary.accAuc)) * 100).toFixed(0)}</td><td>${avg(ss.map(s => s.summary.rtAuc)).toFixed(0)}</td></tr>`;
+    }).join('');
+    html += `<h3 class="an">조건별 요약</h3><div class="table-wrap"><table class="res"><thead><tr><th>조건</th><th>세션</th><th>기준 정답률</th><th>기준 RT ms</th><th>정답률 면적</th><th>RT 면적</th></tr></thead><tbody>${rows}</tbody></table></div>`;
+  }
+
+  body.innerHTML = html;
+  const cs = renderAnalysis._curves;
+  if (cs && $('#gAcc')) {
+    drawMulti($('#gAcc'), cs.map(c => ({ name: c.name, color: c.color, pts: c.acc, base: c.baseAcc == null ? null : c.baseAcc * 100 })), { yMax: 100, unit: '%' });
+    drawMulti($('#gRt'), cs.map(c => ({ name: c.name, color: c.color, pts: c.rt, base: c.baseRt })), { unit: '' });
+  }
+  if (renderAnalysis._se && $('#gSE')) drawScatter($('#gSE'), renderAnalysis._se);
+}
+
+(function initAnalysis() {
+  const sel = $('#fCond');
+  sel.innerHTML = '<option value="ALL">전체 조건</option>' + [...$('#cond').options].map(o => `<option value="${esc(o.value)}">${esc(o.text)}</option>`).join('');
+  sel.value = 'EXP3';
+  sel.addEventListener('change', renderAnalysis);
+  $('#fProto').addEventListener('change', renderAnalysis);
+  $('#fAborted').addEventListener('change', renderAnalysis);
+  $('#fFirst').addEventListener('change', renderAnalysis);
+  $('#anBody').addEventListener('click', e => {
+    const b = e.target.closest('[data-del]'); if (!b) return;
+    if (!confirm('이 측정 기록을 삭제할까요? 되돌릴 수 없습니다.')) return;
+    hist = hist.filter(s => s.id !== b.dataset.del); saveHist(hist); renderAnalysis();
+  });
+  $('#anBody').addEventListener('change', e => {
+    const id = e.target.dataset && e.target.dataset.inc; if (!id) return;
+    const s = hist.find(x => x.id === id); if (s) { s.excluded = !e.target.checked; saveHist(hist); renderAnalysis(); }
+  });
+  $('#btnAllTrials').addEventListener('click', () => {
+    if (!hist.length) { alert('저장된 기록이 없습니다.'); return; }
+    const rows = hist.slice().sort((a, b) => a.startedAt < b.startedAt ? -1 : 1).flatMap(trialRows);
+    download('LandoltC_all_trials_' + new Date().toISOString().slice(0, 10) + '.csv', toCsv(TRIAL_HDR, rows));
+  });
+  $('#btnAllSum').addEventListener('click', () => {
+    if (!hist.length) { alert('저장된 기록이 없습니다.'); return; }
+    const { pool, rm } = analysisPools(), ids = new Set(pool.map(s => s.id));
+    const tps = [...new Set(hist.flatMap(s => (s.summary ? s.summary.rows.map(r => r.tp) : [])))].sort((a, b) => a - b);
+    const hdr = ['code', 'group', 'se_d', 'eye', 'condition', 'session_no', 'started_at', 'protocol_id', 'aborted', 'excluded', 'in_rrdi_pool', 'base_n', 'base_acc', 'base_rt_ms'];
+    tps.forEach(tp => hdr.push('n_' + tp, 'acc_' + tp, 'rt_' + tp));
+    hdr.push('acc_deficit_sum', 'rt_excess_sum_ms', 'acc_deficit_auc', 'rt_excess_auc', 'z_acc_auc', 'z_rt_auc', 'rrdi', 'note');
+    const rows = hist.slice().sort((a, b) => a.startedAt < b.startedAt ? -1 : 1).map(s => {
+      const M = s.summary, o = rm.get(s.id);
+      const r = [s.S.code, s.S.group || '', s.S.se == null ? '' : s.S.se, s.S.eye, s.S.cond, s.S.sess, s.startedAt, protoOf(s), s.aborted ? 1 : 0, s.excluded ? 1 : 0, ids.has(s.id) ? 1 : 0, M.nB, fix(M.accB, 4), fix(M.rtB, 1)];
+      tps.forEach(tp => { const x = M.rows.find(y => y.tp === tp); r.push(x ? x.n : '', x ? x.acc.toFixed(4) : '', x ? fix(x.rt, 1) : ''); });
+      r.push(M.accSum.toFixed(4), M.rtSum.toFixed(1), M.accAuc.toFixed(4), M.rtAuc.toFixed(1), o ? o.za.toFixed(4) : '', o ? o.zr.toFixed(4) : '', o ? o.rrdi.toFixed(4) : '', s.S.note);
+      return r;
+    });
+    download('LandoltC_all_summary_' + new Date().toISOString().slice(0, 10) + '.csv', toCsv(hdr, rows));
+  });
+  $('#btnBackup').addEventListener('click', () => {
+    if (!hist.length) { alert('저장된 기록이 없습니다.'); return; }
+    download('LandoltC_backup_' + new Date().toISOString().slice(0, 10) + '.json', JSON.stringify(hist), 'application/json');
+  });
+  $('#btnRestore').addEventListener('click', () => $('#fileRestore').click());
+  $('#fileRestore').addEventListener('change', e => {
+    const f = e.target.files[0]; if (!f) return;
+    const r = new FileReader();
+    r.onload = () => {
+      try {
+        const arr = JSON.parse(r.result);
+        if (!Array.isArray(arr)) throw new Error('not array');
+        const ids = new Set(hist.map(s => s.id)); let add = 0;
+        arr.forEach(s => { if (s && s.id && s.S && s.summary && Array.isArray(s.summary.rows) && !ids.has(s.id)) { hist.push(s); ids.add(s.id); add++; } });
+        saveHist(hist); renderAnalysis();
+        alert(`${add}개 세션을 복원했습니다.`);
+      } catch (err) { alert('올바른 백업 파일이 아닙니다.'); }
+      e.target.value = '';
+    };
+    r.readAsText(f);
+  });
+  $('#btnClear').addEventListener('click', () => {
+    if (!hist.length) return;
+    if (!confirm(`저장된 ${hist.length}개 기록을 모두 삭제할까요? 먼저 JSON 백업을 받아두세요. 되돌릴 수 없습니다.`)) return;
+    hist = []; saveHist(hist); renderAnalysis();
+  });
+  $('#se').addEventListener('input', () => {
+    const v = parseFloat($('#se').value);
+    if (!Number.isFinite(v)) return;
+    $('#grp').value = v <= -6 ? 'G1' : v <= -3 ? 'G2' : 'G3';
+  });
+  addEventListener('resize', () => { if (!running) renderAnalysis(); });
+})();
+
+/* ---------- 시작 ---------- */
+$('#btnTest').addEventListener('click', runTest);
+$('#btnRun').addEventListener('click', runSession);
+$('#btnLast').addEventListener('click', () => {
+  try { const s = JSON.parse(localStorage.getItem('lc_last')); if (s) { state.last = s; renderResults(s); $('#results').scrollIntoView({ behavior: 'smooth' }); } } catch (e) {}
+});
+try { if (localStorage.getItem('lc_last')) $('#lastWrap').hidden = false; } catch (e) {}
+loadSettings();
+applyLock();
+updatePreview();
+renderAnalysis();
+if (document.fonts && document.fonts.ready) document.fonts.ready.then(() => { updatePreview(); renderAnalysis(); });
+</script>
+</body>
+</html>
