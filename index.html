@@ -161,7 +161,7 @@
         <h2>모니터 · 거리</h2>
         <div class="grid2">
           <label class="f"><span class="l">모니터 대각선<i>inch</i></span><input id="diag" type="number" value="24" min="10" max="60" step="0.1"></label>
-          <label class="f"><span class="l">눈–화면 거리<i>cm</i></span><input id="dist" type="number" value="45" min="10" max="200" step="1"></label>
+          <label class="f"><span class="l">눈–화면 거리<i>cm</i></span><input id="dist" type="number" value="30" min="10" max="200" step="1"></label>
           <div class="f span2">
             <span class="l">화면 크기 보정 <i id="calState">대각선 추정값 사용 중</i></span>
             <div class="chips" style="margin-top:0"><button type="button" id="btnCal">신용카드로 보정</button><button type="button" id="btnCalReset">보정 해제</button></div>
@@ -368,22 +368,30 @@ function protoId(S) {
 }
 const protoOf = s => s.protocol || protoId(s.S);
 
+// 예전 저장 형식(값만 저장)일 때 쓰던 기본값. 이 값과 같으면 사용자가 바꾸지 않은 칸으로 봅니다.
+const OLD_DEFAULTS = { diag: '24', dist: '45', gap: '10', contrast: '5', bg: '160', flashGray: '255', flashSec: '3', practice: '4', baseline: '10', perBlock: '5', timeout: '2000', timepoints: '5, 10, 20, 30, 45, 60', iti: '200', lateTol: '1' };
+const defaultOf = el => el.tagName === 'SELECT' ? ([...el.options].find(x => x.defaultSelected) || el.options[0]).value : el.defaultValue;
+
 function saveSettings() {
-  const o = {};
-  PROTO_IDS.forEach(id => { o[id] = $('#' + id).value; });
-  try { localStorage.setItem(SKEY, JSON.stringify(o)); } catch (e) {}
+  const v = {}, d = {};
+  PROTO_IDS.forEach(id => { const el = $('#' + id); v[id] = el.value; d[id] = defaultOf(el); });
+  try { localStorage.setItem(SKEY, JSON.stringify({ v, d })); } catch (e) {}
 }
 function loadSettings() {
+  try { locked = localStorage.getItem(LKEY) === '1'; } catch (e) {}
   try {
     const o = JSON.parse(localStorage.getItem(SKEY) || 'null');
-    if (o) PROTO_IDS.forEach(id => {
-      if (o[id] == null) return;
+    if (!o) return;
+    const v = o.v || o, d = o.v ? (o.d || {}) : OLD_DEFAULTS;
+    PROTO_IDS.forEach(id => {
+      if (v[id] == null) return;
+      // 잠금 중이면 저장값을 그대로 씁니다. 잠금이 아니면 직접 바꾼 칸만 저장값을 쓰고, 안 바꾼 칸은 페이지의 현재 기본값을 따릅니다.
+      if (!locked && String(v[id]) === String(d[id])) return;
       const el = $('#' + id), old = el.value;
-      el.value = o[id];
-      if (el.tagName === 'SELECT' && el.value !== String(o[id])) el.value = old;
+      el.value = v[id];
+      if (el.tagName === 'SELECT' && el.value !== String(v[id])) el.value = old;
     });
   } catch (e) {}
-  try { locked = localStorage.getItem(LKEY) === '1'; } catch (e) {}
 }
 function applyLock() {
   PROTO_IDS.forEach(id => { $('#' + id).disabled = locked; });
@@ -481,11 +489,7 @@ $('#btnLock').addEventListener('click', () => {
 });
 $('#btnDefaults').addEventListener('click', () => {
   if (locked || !confirm('측정 설정을 처음 기본값으로 되돌릴까요? (화면 크기 보정과 기록 정보는 그대로 둡니다)')) return;
-  PROTO_IDS.forEach(id => {
-    const el = $('#' + id);
-    if (el.tagName === 'SELECT') { const o = [...el.options].find(x => x.defaultSelected) || el.options[0]; el.value = o.value; }
-    else el.value = el.defaultValue;
-  });
+  PROTO_IDS.forEach(id => { const el = $('#' + id); el.value = defaultOf(el); });
   saveSettings();
   updatePreview();
 });
