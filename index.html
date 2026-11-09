@@ -116,6 +116,8 @@
   .anbar label { display: flex; align-items: center; gap: 6px; font-size: 12.5px; font-weight: 600; }
   .anbar select { width: auto; }
   .anbar input[type=checkbox] { width: auto; }
+  .chk { display: flex; align-items: center; gap: 6px; font-size: 12.5px; margin-top: 10px; }
+  .chk input { width: auto; }
   h3.an { font-size: 12.5px; margin: 18px 0 6px; font-weight: 600; }
   table.sess td:nth-child(n+2):nth-child(-n+9) { text-align: left; }
   table.sess th:nth-child(n+2):nth-child(-n+9) { text-align: left; }
@@ -191,7 +193,7 @@
       <section class="group">
         <h2>시행 설정</h2>
         <div class="grid2">
-          <label class="f"><span class="l">연습 시행<i>회</i></span><input id="practice" type="number" value="4" min="0" max="20"></label>
+          <label class="f"><span class="l">연습 시행<i>회</i></span><input id="practice" type="number" value="10" min="0" max="20"></label>
           <label class="f"><span class="l">기준 측정 시행<i>회</i></span><input id="baseline" type="number" value="10" min="1" max="60"></label>
           <label class="f"><span class="l">시점당 시행<i>회</i></span><input id="perBlock" type="number" value="5" min="1" max="20"></label>
           <label class="f"><span class="l">응답 제한시간<i>ms</i></span><input id="timeout" type="number" value="2000" min="500" max="8000" step="100"></label>
@@ -212,7 +214,7 @@
         <h2>기록 정보</h2>
         <div class="grid2">
           <label class="f"><span class="l">참여자 코드</span><input id="code" type="text" placeholder="예: 01" autocomplete="off"></label>
-          <label class="f"><span class="l">측정 눈</span><select id="eye"><option value="우안">우안</option><option value="좌안">좌안</option></select></label>
+          <label class="f"><span class="l">측정 눈</span><select id="eye"><option value="BOTH" selected>양안 (우안 → 좌안)</option><option value="우안">우안</option><option value="좌안">좌안</option></select></label>
           <label class="f"><span class="l">조건</span>
             <select id="cond">
               <option value="SEQ2" selected>연속 A → ND4 → ND8 → C → D1 → D2</option>
@@ -268,6 +270,7 @@
           <li><kbd>Space</kbd><span>새 방향 · <kbd>H</kbd> 정보창 · <kbd>Esc</kbd> 종료</span></li>
           <li><kbd>Q</kbd><span>측정 중 즉시 중단</span></li>
         </ul>
+        <label class="chk"><input type="checkbox" id="autoBk" checked>측정이 끝나면 백업 파일(JSON) 자동 저장</label>
       </div>
       <div class="card" id="lastWrap" hidden><button type="button" id="btnLast">직전 세션 결과 다시 보기</button></div>
     </aside>
@@ -286,7 +289,7 @@
       <button type="button" id="btnAllSum">전체 요약 CSV</button>
       <button type="button" id="btnBackup">JSON 백업</button>
       <button type="button" id="btnRestore">JSON 복원</button>
-      <input type="file" id="fileRestore" accept=".json,application/json" hidden>
+      <input type="file" id="fileRestore" accept=".json,application/json" multiple hidden>
       <button type="button" id="btnClear">기록 모두 삭제</button>
     </div>
     <p class="note" id="anNote" style="margin:0 0 6px"></p>
@@ -677,6 +680,8 @@ async function runTest() {
 }
 
 /* ---------- 측정 세션 ---------- */
+// 이보다 빠른 반응은 C를 보고 누른 것이 아니라 미리 누른 것으로 보고 요약 계산에서 뺍니다 (시행 로그에는 남김).
+const MIN_RT = 150;
 async function runTrial(sess, S, G, phase, ex) {
   const ori = nextOri();
   show(() => pFix(S));
@@ -690,6 +695,7 @@ async function runTrial(sess, S, G, phase, ex) {
     correct: r.key ? DIRS[r.key] === ori : false,
     rt: r.key ? r.ts - onset : null,
     timeout: !r.key,
+    anticip: !!r.key && r.ts - onset < MIN_RT,
   };
   sess.trials.push(rec);
   show(() => pFix(S));
@@ -707,7 +713,10 @@ async function runSession() {
   $('#status').textContent = '';
   const G = geom(S0);
   const conds = S0.cond === 'SEQ2' ? SEQ2 : [S0.cond];
-  const seqId = conds.length > 1 ? newId() : null;
+  const eyes = S0.eye === 'BOTH' ? ['우안', '좌안'] : [S0.eye];
+  // 렌즈를 덜 바꾸도록 렌즈마다 우안 → 좌안 순서로 잽니다
+  const runs = conds.flatMap(cond => eyes.map(eye => ({ cond, eye })));
+  const seqId = runs.length > 1 ? newId() : null;
   const list = [];
   bag = [];
   lastSaveOk = true;
@@ -715,18 +724,36 @@ async function runSession() {
   try {
     try { if (navigator.wakeLock) wake = await navigator.wakeLock.request('screen'); } catch (e) {}
     await enterStage('session');
-    show(() => pText(S0, [{ t: '화면 가운데에 C 모양이 나타납니다', s: 34 }, 'C가 벌어진 쪽 방향을 방향키 ← ↑ → ↓ 로 눌러주세요', '정확하게, 되도록 빠르게', '', { t: `${S0.eye} 측정입니다. 반대쪽 눈은 가리개로 가려주세요`, s: 26 }, '', { t: '준비되면 스페이스바', s: 26 }]));
+    // 모든 참가자에게 같은 설명이 나오도록 하는 시작 안내
+    show(() => pText(S0, [
+      { t: '진행 방법', s: 38 }, '',
+      { t: '1. 화면 가운데에 연한 C 모양이 나옵니다', s: 27 },
+      { t: '2. C가 뚫린 쪽 방향을 방향키 ← ↑ → ↓ 로 누르세요', s: 27 },
+      { t: '3. 중간에 화면이 몇 초간 밝아지고, 그 뒤 1분쯤 더 답합니다', s: 27 }, '',
+      { t: '잘 안 보여도 짐작해서 하나를 꼭 눌러 주세요', s: 27 },
+      { t: '정확하게, 되도록 빠르게', s: 27 },
+      { t: '눈이 불편하면 언제든 손을 들어 주세요', s: 27 }, '',
+      { t: `${eyes[0]}부터 측정합니다. 반대쪽 눈은 가리개로 가려 주세요`, s: 25 },
+      { t: '준비되면 스페이스바', s: 25 },
+    ]));
     await waitKey(isSpace);
 
-    for (let k = 0; k < conds.length; k++) {
-      const S = { ...S0, cond: conds[k] };
+    for (let k = 0; k < runs.length; k++) {
+      const { cond, eye } = runs[k], prev = runs[k - 1];
+      const S = { ...S0, cond, eye };
       sess = { startedAt: new Date().toISOString(), S, G, trials: [], aborted: false, calibrated: state.calibrated, protocol: protoId(S), locked };
-      if (seqId) sess.seq = { id: seqId, idx: k + 1, n: conds.length };
+      if (seqId) sess.seq = { id: seqId, idx: k + 1, n: runs.length };
       list.push(sess);
 
-      // 연속 측정: 조건마다 렌즈 교체 화면. 교체를 마치고 스페이스바를 누를 때까지 기다립니다.
-      if (seqId) {
-        show(() => pText(S, [{ t: `${k + 1} / ${conds.length}`, s: 26 }, { t: conds[k], s: 72 }, k === 0 ? '렌즈를 확인해 주세요' : '렌즈를 바꿔 주세요', '', { t: '준비되면 스페이스바', s: 26 }]));
+      // 렌즈나 눈이 바뀔 때 교체 화면. 교체를 마치고 스페이스바를 누를 때까지 기다립니다.
+      const lensChange = conds.length > 1 && (!prev || prev.cond !== cond);
+      const eyeChange = !!prev && prev.eye !== eye;
+      if (lensChange || eyeChange) {
+        const lines = [{ t: `${k + 1} / ${runs.length}`, s: 26 }];
+        if (lensChange) lines.push({ t: cond, s: 72 }, prev ? '렌즈를 바꿔 주세요' : '렌즈를 확인해 주세요');
+        if (eyeChange) lines.push({ t: `이제 ${eye} 측정입니다`, s: lensChange ? 30 : 48 }, '가리개를 반대쪽 눈으로 옮겨 주세요');
+        lines.push('', { t: '준비되면 스페이스바', s: 26 });
+        show(() => pText(S, lines));
         await waitKey(isSpace);
         sess.startedAt = new Date().toISOString();
       }
@@ -778,7 +805,7 @@ async function runSession() {
 
 /* ---------- 요약 · 결과 ---------- */
 function summarize(sess) {
-  const T = sess.trials;
+  const T = sess.trials.filter(t => !t.anticip);
   const mean = a => a.length ? a.reduce((x, y) => x + y, 0) / a.length : null;
   const rtOf = a => mean(a.filter(t => t.correct && t.rt != null).map(t => t.rt));
   const base = T.filter(t => t.phase === 'baseline');
@@ -792,13 +819,15 @@ function summarize(sess) {
     const rt = rtOf(tr);
     rows.push({
       tp, n: tr.length, acc, rt, late: tr[0].blockStartS - tp,
+      nRun: sess.trials.filter(t => t.phase === 'recovery' && t.tp === tp).length,   // 미리 누름 포함, 실제로 진행한 시행 수
       accDef: accB == null ? null : Math.max(0, accB - acc),
       rtEx: rt == null || rtB == null ? null : Math.max(0, rt - rtB),
     });
   }
   const sum = k => rows.reduce((s, r) => r[k] == null ? s : s + r[k], 0);
   const auc = k => { let a = 0; for (let i = 0; i < rows.length - 1; i++) { const p = rows[i], q = rows[i + 1]; if (p[k] != null && q[k] != null) a += (p[k] + q[k]) / 2 * (q.tp - p.tp); } return a; };
-  return { nB: base.length, accB, rtB, rows, accSum: sum('accDef'), rtSum: sum('rtEx'), accAuc: auc('accDef'), rtAuc: auc('rtEx') };
+  const nAnticip = sess.trials.filter(t => t.anticip && t.phase !== 'practice').length;
+  return { nB: base.length, accB, rtB, rows, accSum: sum('accDef'), rtSum: sum('rtEx'), accAuc: auc('accDef'), rtAuc: auc('rtEx'), nAnticip };
 }
 
 let hist = [];
@@ -823,9 +852,17 @@ function finish(list) {
   state.last = last;
   try { localStorage.setItem('lc_last', JSON.stringify(last)); $('#lastWrap').hidden = false; } catch (e) {}
   showLast(last);
+  // 브라우저 기록이 지워져도 되살릴 수 있게 이번 측정을 JSON 파일로 바로 저장 (분석 영역의 "JSON 복원"으로 불러오기)
+  const saved = list.filter(s => s.trials.some(t => t.phase !== 'practice'));
+  if (saved.length && $('#autoBk').checked) download(runFileName(list) + '_backup.json', JSON.stringify(saved), 'application/json');
   renderAnalysis();
   updatePreview();
   $('#results').scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+// 여러 조건·양안을 묶은 측정이면 파일 이름의 조건·눈 자리를 SEQ·양안으로
+function runFileName(list) {
+  const S = list[0].S, multiC = new Set(list.map(s => s.S.cond)).size > 1, multiE = new Set(list.map(s => s.S.eye)).size > 1;
+  return baseName({ ...list[0], S: { ...S, cond: multiC ? 'SEQ' : S.cond, eye: multiE ? '양안' : S.eye } });
 }
 
 const pct = v => v == null ? '—' : (v * 100).toFixed(0) + '%';
@@ -841,7 +878,7 @@ function renderResults(sess) {
   ].join('');
   const lateLim = S.blockCut ? S.lateTol + 0.5 : 1.5;
   const late = M.rows.some(r => r.late > lateLim);
-  const cut = M.rows.filter((r, i) => i < M.rows.length - 1 && r.n < S.perBlock);
+  const cut = M.rows.filter((r, i) => i < M.rows.length - 1 && (r.nRun ?? r.n) < S.perBlock);
   sec.innerHTML = `
     <h2>측정 결과</h2>
     <div class="res-head">
@@ -849,6 +886,7 @@ function renderResults(sess) {
       <span>본 시행 <b>${trialsDone}</b>회</span><span>프로토콜 <b class="mono">${esc(protoOf(sess))}</b>${sess.locked === false ? ' (잠금 안 됨)' : ''}</span>${sess.aborted ? '<span style="color:var(--warn-ink)"><b>중단됨 — 부분 데이터</b></span>' : ''}
     </div>
     ${late ? `<div class="warn" style="margin-bottom:10px">일부 시점 블록이 예정보다 ${lateLim.toFixed(1)}초 넘게 늦게 시작했습니다. ${S.blockCut ? '측정 중 컴퓨터가 잠깐 멈췄을 수 있으니 이 세션은 다시 측정하는 것을 고려하세요.' : '앞 블록이 길어진 경우입니다. 설정의 "다음 시점 보호"를 켜세요.'}</div>` : ''}
+    ${M.nAnticip ? `<div class="warn info" style="margin-bottom:10px">C가 나오고 ${MIN_RT}ms 안에 누른 반응 ${M.nAnticip}회는 미리 누른 것으로 보고 정답률·RT 계산에서 뺐습니다 (시행 로그에는 anticip=1로 남아 있음).</div>` : ''}
     ${cut.length && !sess.aborted ? `<div class="warn info" style="margin-bottom:10px">다음 시점을 제때 시작하려고 ${cut.map(r => r.tp + '초').join(', ')} 시점의 시행 수를 줄였습니다 (시행 열의 n/${S.perBlock}). 정답률과 평균 RT는 실제로 한 시행 수로 계산했습니다.</div>` : ''}
     ${lastSaveOk ? '' : '<div class="warn" style="margin-bottom:10px">브라우저 저장공간이 부족해 누적 기록에 저장하지 못했습니다. 아래 CSV를 꼭 저장하고, 분석 영역에서 오래된 기록을 정리하세요.</div>'}
     <div class="table-wrap"><table class="res"><thead><tr><th>시점</th><th>시행</th><th>정답률</th><th>평균 RT ms</th><th>Δ정답률</th><th>ΔRT ms</th><th>시작 지연</th></tr></thead><tbody>${rowsHtml}</tbody></table></div>
@@ -871,43 +909,54 @@ function renderResults(sess) {
   $('#dlSum').addEventListener('click', () => downloadSummary(sess));
 }
 
+const EYE_COL = { 우안: 'var(--accent2)', 좌안: 'var(--accent)' };
+
+// 여러 측정(조건 여러 개, 양안)을 한 번에 진행했을 때의 결과 화면
 function renderSeqResults(list) {
   const S = list[0].S, n = list[0].seq ? list[0].seq.n : list.length, sec = $('#results');
+  const conds = [...new Set(list.map(s => s.S.cond))], eyes = [...new Set(list.map(s => s.S.eye))];
+  const multiC = conds.length > 1, multiE = eyes.length > 1;
   const lateLim = S.blockCut ? S.lateTol + 0.5 : 1.5;
-  const colOf = s => SEQ_COL[s.S.cond] || 'var(--ink-faint)';
+  const colOf = s => (multiC ? SEQ_COL[s.S.cond] : EYE_COL[s.S.eye]) || 'var(--ink-faint)';
+  const label = s => [multiC ? condShort(s.S.cond) : '', multiE ? s.S.eye : ''].filter(Boolean).join(' · ') || condShort(s.S.cond);
   const ok = list.filter(s => s.summary && s.summary.rows.length);
   const rows = list.map(s => {
     const M = s.summary, notes = [];
     if (s.aborted) notes.push('중단');
-    const cut = M.rows.filter((r, i) => i < M.rows.length - 1 && r.n < S.perBlock).map(r => r.tp + '초');
+    const cut = M.rows.filter((r, i) => i < M.rows.length - 1 && (r.nRun ?? r.n) < S.perBlock).map(r => r.tp + '초');
     if (cut.length && !s.aborted) notes.push('시행 줄임 ' + cut.join(', '));
     if (M.rows.some(r => r.late > lateLim)) notes.push('시작 지연');
+    if (M.nAnticip) notes.push(`미리 누름 ${M.nAnticip}회 제외`);
     const has = M.rows.length > 0;
-    return `<tr><td><span class="dot" style="background:${colOf(s)}"></span>${esc(condShort(s.S.cond))}</td><td>${M.nB}</td><td>${pct(M.accB)}</td><td>${ms(M.rtB)}</td><td>${has ? (M.accAuc * 100).toFixed(0) : '—'}</td><td>${has ? M.rtAuc.toFixed(0) : '—'}</td><td>${esc(notes.join(' · '))}</td></tr>`;
+    return `<tr><td><span class="dot" style="background:${colOf(s)}"></span>${esc(label(s))}</td><td>${M.nB}</td><td>${pct(M.accB)}</td><td>${ms(M.rtB)}</td><td>${has ? (M.accAuc * 100).toFixed(0) : '—'}</td><td>${has ? M.rtAuc.toFixed(0) : '—'}</td><td>${esc(notes.join(' · '))}</td></tr>`;
   }).join('');
   const done = list.filter(s => !s.aborted).length;
+  // 조건도 여러 개이고 양안이면 눈마다 그래프를 따로, 아니면 한 묶음
+  const blocks = multiC && multiE ? eyes.map(e => ({ title: e + ' · ', ss: ok.filter(s => s.S.eye === e) })) : [{ title: '', ss: ok }];
+  const legend = multiC ? conds.map(c => ({ name: condShort(c), color: SEQ_COL[c] || 'var(--ink-faint)' })) : eyes.map(e => ({ name: e, color: EYE_COL[e] || 'var(--ink-faint)' }));
   sec.innerHTML = `
     <h2>측정 결과 · 연속 측정</h2>
     <div class="res-head">
-      <span>코드 <b>${esc(S.code)}</b></span><span>눈 <b>${esc(S.eye)}</b></span><span>회차 <b>${esc(S.sess)}</b></span>${S.group ? `<span>군 <b>${esc(GLABEL[S.group] || S.group)}</b></span>` : ''}${S.se == null ? '' : `<span>SE <b>${S.se.toFixed(2)}D</b></span>`}
-      <span>프로토콜 <b class="mono">${esc(protoOf(list[0]))}</b>${list[0].locked === false ? ' (잠금 안 됨)' : ''}</span><span>완료 <b>${done} / ${n}</b> 조건</span>${done < n ? '<span style="color:var(--warn-ink)"><b>중단됨 — 끝난 조건까지만 저장</b></span>' : ''}
+      <span>코드 <b>${esc(S.code)}</b></span><span>눈 <b>${multiE ? '양안' : esc(S.eye)}</b></span><span>조건 <b>${multiC ? `연속 ${conds.length}개` : esc(condShort(S.cond))}</b></span><span>회차 <b>${esc(S.sess)}</b></span>${S.group ? `<span>군 <b>${esc(GLABEL[S.group] || S.group)}</b></span>` : ''}${S.se == null ? '' : `<span>SE <b>${S.se.toFixed(2)}D</b></span>`}
+      <span>프로토콜 <b class="mono">${esc(protoOf(list[0]))}</b>${list[0].locked === false ? ' (잠금 안 됨)' : ''}</span><span>완료 <b>${done} / ${n}</b></span>${done < n ? '<span style="color:var(--warn-ink)"><b>중단됨 — 끝난 측정까지만 저장</b></span>' : ''}
     </div>
     ${lastSaveOk ? '' : '<div class="warn" style="margin-bottom:10px">브라우저 저장공간이 부족해 누적 기록에 저장하지 못했습니다. 아래 CSV를 꼭 저장하고, 분석 영역에서 오래된 기록을 정리하세요.</div>'}
-    <div class="table-wrap"><table class="res"><thead><tr><th>조건</th><th>기준 시행</th><th>기준 정답률</th><th>기준 RT ms</th><th>정답률 면적 %p·s</th><th>RT 면적 ms·s</th><th>비고</th></tr></thead><tbody>${rows}</tbody></table></div>
-    ${ok.length ? legendHtml(ok.map(s => ({ name: condShort(s.S.cond), color: colOf(s) }))) : ''}
-    <div class="charts">
-      <div><h3>정답률 (점선 = 각 조건의 기준)</h3><canvas id="sqAcc"></canvas></div>
-      <div><h3>반응시간 (ms, 정답 시행)</h3><canvas id="sqRt"></canvas></div>
-    </div>
-    <div class="res-actions"><button type="button" class="primary" id="dlTrials" style="padding:8px 14px">시행 로그 CSV 저장 (전체 조건)</button><button type="button" class="primary" id="dlSum" style="padding:8px 14px">요약 CSV 저장 (전체 조건)</button></div>`;
+    <div class="table-wrap"><table class="res"><thead><tr><th>측정</th><th>기준 시행</th><th>기준 정답률</th><th>기준 RT ms</th><th>정답률 면적 %p·s</th><th>RT 면적 ms·s</th><th>비고</th></tr></thead><tbody>${rows}</tbody></table></div>
+    ${ok.length ? legendHtml(legend) : ''}
+    ${blocks.map((b, i) => `<div class="charts">
+      <div><h3>${esc(b.title)}정답률 (점선 = 각자의 기준)</h3><canvas id="sqAcc${i}"></canvas></div>
+      <div><h3>${esc(b.title)}반응시간 (ms, 정답 시행)</h3><canvas id="sqRt${i}"></canvas></div>
+    </div>`).join('')}
+    <div class="res-actions"><button type="button" class="primary" id="dlTrials" style="padding:8px 14px">시행 로그 CSV 저장 (전체)</button><button type="button" class="primary" id="dlSum" style="padding:8px 14px">요약 CSV 저장 (전체)</button></div>`;
   sec.hidden = false;
-  if (ok.length) {
-    drawMulti($('#sqAcc'), ok.map(s => ({ color: colOf(s), pts: s.summary.rows.map(r => ({ x: r.tp, y: r.acc * 100 })), base: s.summary.accB == null ? null : s.summary.accB * 100 })), { yMax: 100, unit: '%' });
-    drawMulti($('#sqRt'), ok.map(s => ({ color: colOf(s), pts: s.summary.rows.filter(r => r.rt != null).map(r => ({ x: r.tp, y: r.rt })), base: s.summary.rtB })), { unit: '' });
-  }
-  const name = baseName({ ...list[0], S: { ...S, cond: 'SEQ' } });
+  blocks.forEach((b, i) => {
+    if (!b.ss.length) return;
+    drawMulti($('#sqAcc' + i), b.ss.map(s => ({ color: colOf(s), pts: s.summary.rows.map(r => ({ x: r.tp, y: r.acc * 100 })), base: s.summary.accB == null ? null : s.summary.accB * 100 })), { yMax: 100, unit: '%' });
+    drawMulti($('#sqRt' + i), b.ss.map(s => ({ color: colOf(s), pts: s.summary.rows.filter(r => r.rt != null).map(r => ({ x: r.tp, y: r.rt })), base: s.summary.rtB })), { unit: '' });
+  });
+  const name = runFileName(list);
   $('#dlTrials').addEventListener('click', () => download(name + '_trials.csv', toCsv(TRIAL_HDR, list.flatMap(s => trialRows(s)))));
-  $('#dlSum').addEventListener('click', () => { const p = list.map(summaryRow); download(name + '_summary.csv', toCsv(p[0].hdr, p.map(x => x.row))); });
+  $('#dlSum').addEventListener('click', () => { const p = list.filter(s => s.summary).map(summaryRow); download(name + '_summary.csv', toCsv(p[0].hdr, p.map(x => x.row))); });
 }
 
 function drawChart(cv, pts, o) {
@@ -959,11 +1008,11 @@ function baseName(sess) {
   return [S.code, S.eye, S.cond, S.sess, st].join('_').replace(/[^\w가-힣-]+/g, '_');
 }
 const seqIdx = s => (s.seq ? s.seq.idx : '');
-const TRIAL_HDR = ['code', 'group', 'se_d', 'eye', 'condition', 'session_no', 'started_at', 'protocol_id', 'seq_idx', 'phase', 'tp_sched_s', 'block_start_s', 'trial_onset_s', 'trial_no', 'gap_dir', 'response', 'correct', 'rt_ms', 'timeout', 'dist_cm', 'gap_arcmin', 'gap_px', 'contrast_set_pct', 'contrast_actual_pct', 'bg_gray', 'target_gray', 'flash_gray', 'flash_ms', 'px_per_mm', 'calibrated', 'aborted', 'note'];
+const TRIAL_HDR = ['code', 'group', 'se_d', 'eye', 'condition', 'session_no', 'started_at', 'protocol_id', 'seq_idx', 'phase', 'tp_sched_s', 'block_start_s', 'trial_onset_s', 'trial_no', 'gap_dir', 'response', 'correct', 'rt_ms', 'timeout', 'anticip', 'dist_cm', 'gap_arcmin', 'gap_px', 'contrast_set_pct', 'contrast_actual_pct', 'bg_gray', 'target_gray', 'flash_gray', 'flash_ms', 'px_per_mm', 'calibrated', 'aborted', 'note'];
 function trialRows(sess) {
   const S = sess.S, G = sess.G, cal = sess.calibrated === undefined ? state.calibrated : sess.calibrated;
   const pid = protoOf(sess);
-  return sess.trials.map(t => [S.code, S.group || '', S.se == null ? '' : S.se, S.eye, S.cond, S.sess, sess.startedAt, pid, seqIdx(sess), t.phase, t.tp, fix(t.blockStartS, 3), fix(t.onsetS, 3), t.trialNo, ORI_CODE[t.ori], t.resp == null ? '' : ORI_CODE[t.resp], t.correct ? 1 : 0, fix(t.rt, 1), t.timeout ? 1 : 0, S.dist, S.gapArc, G.gapPx.toFixed(2), S.contrast, G.actual.toFixed(2), S.bg, G.tgt, S.flashGray, S.flashMs, G.ppm.toFixed(4), cal ? 1 : 0, sess.aborted ? 1 : 0, S.note]);
+  return sess.trials.map(t => [S.code, S.group || '', S.se == null ? '' : S.se, S.eye, S.cond, S.sess, sess.startedAt, pid, seqIdx(sess), t.phase, t.tp, fix(t.blockStartS, 3), fix(t.onsetS, 3), t.trialNo, ORI_CODE[t.ori], t.resp == null ? '' : ORI_CODE[t.resp], t.correct ? 1 : 0, fix(t.rt, 1), t.timeout ? 1 : 0, t.anticip ? 1 : 0, S.dist, S.gapArc, G.gapPx.toFixed(2), S.contrast, G.actual.toFixed(2), S.bg, G.tgt, S.flashGray, S.flashMs, G.ppm.toFixed(4), cal ? 1 : 0, sess.aborted ? 1 : 0, S.note]);
 }
 function downloadTrials(sess) {
   download(baseName(sess) + '_trials.csv', toCsv(TRIAL_HDR, trialRows(sess)));
@@ -1261,21 +1310,23 @@ function renderAnalysis() {
     download('LandoltC_backup_' + new Date().toISOString().slice(0, 10) + '.json', JSON.stringify(hist), 'application/json');
   });
   $('#btnRestore').addEventListener('click', () => $('#fileRestore').click());
-  $('#fileRestore').addEventListener('change', e => {
-    const f = e.target.files[0]; if (!f) return;
-    const r = new FileReader();
-    r.onload = () => {
+  // 여러 백업 파일을 한 번에 골라도 됩니다. 이미 있는 세션은 건너뜁니다.
+  $('#fileRestore').addEventListener('change', async e => {
+    const files = [...e.target.files];
+    if (!files.length) return;
+    const ids = new Set(hist.map(s => s.id));
+    let add = 0, bad = 0;
+    for (const f of files) {
       try {
-        const arr = JSON.parse(r.result);
+        const arr = JSON.parse(await f.text());
         if (!Array.isArray(arr)) throw new Error('not array');
-        const ids = new Set(hist.map(s => s.id)); let add = 0;
         arr.forEach(s => { if (s && s.id && s.S && s.summary && Array.isArray(s.summary.rows) && !ids.has(s.id)) { hist.push(s); ids.add(s.id); add++; } });
-        saveHist(hist); renderAnalysis();
-        alert(`${add}개 세션을 복원했습니다.`);
-      } catch (err) { alert('올바른 백업 파일이 아닙니다.'); }
-      e.target.value = '';
-    };
-    r.readAsText(f);
+      } catch (err) { bad++; }
+    }
+    e.target.value = '';
+    saveHist(hist);
+    renderAnalysis();
+    alert(`파일 ${files.length}개에서 ${add}개 세션을 복원했습니다.` + (bad ? ` 읽지 못한 파일 ${bad}개가 있습니다.` : ''));
   });
   $('#btnClear').addEventListener('click', () => {
     if (!hist.length) return;
@@ -1299,9 +1350,14 @@ $('#btnLast').addEventListener('click', () => {
 try { if (localStorage.getItem('lc_last')) $('#lastWrap').hidden = false; } catch (e) {}
 loadSettings();
 applyLock();
-// 마지막으로 고른 조건을 기억합니다
-try { const c = localStorage.getItem('lc_cond'); if (c && [...$('#cond').options].some(o => o.value === c)) $('#cond').value = c; } catch (e) {}
-$('#cond').addEventListener('change', () => { try { localStorage.setItem('lc_cond', $('#cond').value); } catch (e) {} });
+// 마지막으로 고른 조건·측정 눈과 자동 백업 설정을 기억합니다
+['cond', 'eye'].forEach(id => {
+  const el = $('#' + id), key = 'lc_' + id;
+  try { const v = localStorage.getItem(key); if (v && [...el.options].some(o => o.value === v)) el.value = v; } catch (e) {}
+  el.addEventListener('change', () => { try { localStorage.setItem(key, el.value); } catch (e) {} });
+});
+try { if (localStorage.getItem('lc_autobk') === '0') $('#autoBk').checked = false; } catch (e) {}
+$('#autoBk').addEventListener('change', () => { try { localStorage.setItem('lc_autobk', $('#autoBk').checked ? '1' : '0'); } catch (e) {} });
 updatePreview();
 renderAnalysis();
 if (document.fonts && document.fonts.ready) document.fonts.ready.then(() => { updatePreview(); renderAnalysis(); });
