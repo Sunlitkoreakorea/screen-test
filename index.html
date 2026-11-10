@@ -118,6 +118,9 @@
   .anbar input[type=checkbox] { width: auto; }
   .chk { display: flex; align-items: center; gap: 6px; font-size: 12.5px; margin-top: 10px; }
   .chk input { width: auto; }
+  #nameWrap[hidden] { display: none; }
+  #nameHit.ok { color: var(--accent2); font-weight: 600; }
+  #nameHit.no { color: var(--warn-ink); }
   h3.an { font-size: 12.5px; margin: 18px 0 6px; font-weight: 600; }
   table.sess td:nth-child(n+2):nth-child(-n+9) { text-align: left; }
   table.sess th:nth-child(n+2):nth-child(-n+9) { text-align: left; }
@@ -213,6 +216,7 @@
       <section class="group">
         <h2>기록 정보</h2>
         <div class="grid2">
+          <label class="f span2" id="nameWrap" hidden><span class="l">이름으로 찾기 <i id="nameHit"></i></span><input id="pname" type="text" list="rosterList" autocomplete="off" placeholder="이름을 치면 코드 · SE · 군이 자동으로 채워집니다 (이름은 기록되지 않음)"><datalist id="rosterList"></datalist></label>
           <label class="f"><span class="l">참여자 코드</span><input id="code" type="text" placeholder="예: 01" autocomplete="off"></label>
           <label class="f"><span class="l">측정 눈</span><select id="eye"><option value="BOTH" selected>양안 (우안 → 좌안)</option><option value="우안">우안</option><option value="좌안">좌안</option></select></label>
           <label class="f"><span class="l">조건</span>
@@ -1341,7 +1345,35 @@ function renderAnalysis() {
   addEventListener('resize', () => { if (!running) renderAnalysis(); });
 })();
 
+/* ---------- 참가자 명단 (명단 파일이 있을 때만) ---------- */
+// 이름을 치면 코드·SE·군을 채웁니다. 이름 자체는 저장하거나 기록하지 않습니다.
+function initRoster() {
+  const R = Array.isArray(window.ROSTER) ? window.ROSTER : [];
+  if (!R.length) return;
+  $('#nameWrap').hidden = false;
+  $('#rosterList').innerHTML = R.map(p => `<option value="${esc(p.name)}">${esc(p.code)}</option>`).join('');
+  let filled = false;
+  const hit = (t, cls) => { const el = $('#nameHit'); el.textContent = t; el.className = cls || ''; };
+  const fill = () => {
+    const v = $('#pname').value.trim(), p = R.find(x => x.name === v);
+    if (!p) {
+      // 다른 이름을 치는 중이면 앞사람 코드가 남아 잘못 기록되지 않게 비웁니다
+      if (filled) { $('#code').value = ''; $('#se').value = ''; $('#grp').value = ''; filled = false; }
+      hit(v ? '명단에 없음' : '', v ? 'no' : '');
+      return;
+    }
+    $('#code').value = p.code;
+    $('#se').value = p.se == null ? '' : p.se;
+    $('#grp').value = p.group || '';
+    filled = true;
+    hit(`→ ${p.code}` + (p.group ? ` · ${GLABEL[p.group] || p.group}` : ' · 군 미정') + (p.se == null ? ' · SE 미확인' : ` · SE ${p.se}`) + (p.team ? ' · 팀원' : ''), 'ok');
+  };
+  $('#pname').addEventListener('input', fill);
+  $('#pname').addEventListener('change', fill);
+}
+
 /* ---------- 시작 ---------- */
+initRoster();
 $('#btnTest').addEventListener('click', runTest);
 $('#btnRun').addEventListener('click', runSession);
 $('#btnLast').addEventListener('click', () => {
