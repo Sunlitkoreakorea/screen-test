@@ -197,6 +197,7 @@
         <h2>시행 설정</h2>
         <div class="grid2">
           <label class="f"><span class="l">연습 시행<i>회</i></span><input id="practice" type="number" value="10" min="0" max="20"></label>
+          <label class="f"><span class="l">교체 후 재연습<i>회</i></span><input id="rePractice" type="number" value="4" min="0" max="10"></label>
           <label class="f"><span class="l">기준 측정 시행<i>회</i></span><input id="baseline" type="number" value="10" min="1" max="60"></label>
           <label class="f"><span class="l">시점당 시행<i>회</i></span><input id="perBlock" type="number" value="5" min="1" max="20"></label>
           <label class="f"><span class="l">응답 제한시간<i>ms</i></span><input id="timeout" type="number" value="2000" min="500" max="8000" step="100"></label>
@@ -346,6 +347,7 @@ function readSettings() {
     flashGray: clamp(Math.round(num('flashGray', 255)), 0, 255),
     flashMs: clamp(Math.round(num('flashSec', 3) * 1000), 500, 15000),
     practice: clamp(Math.round(num('practice', 4)), 0, 20),
+    rePractice: clamp(Math.round(num('rePractice', 4)), 0, 10),
     baseline: clamp(Math.round(num('baseline', 10)), 1, 60),
     perBlock: clamp(Math.round(num('perBlock', 5)), 1, 20),
     iti: clamp(Math.round(num('iti', 200)), 0, 2000),
@@ -364,12 +366,12 @@ function readSettings() {
 
 /* ---------- 측정 프로토콜 (설정 저장 · 잠금 · ID) ---------- */
 // 측정 결과에 영향을 주는 설정. 모니터 대각선은 화면 보정용이라 ID 계산에서는 빠집니다.
-const PROTO_IDS = ['diag', 'dist', 'gap', 'contrast', 'bg', 'flashGray', 'flashSec', 'practice', 'baseline', 'perBlock', 'timeout', 'timepoints', 'iti', 'lateTol'];
+const PROTO_IDS = ['diag', 'dist', 'gap', 'contrast', 'bg', 'flashGray', 'flashSec', 'practice', 'rePractice', 'baseline', 'perBlock', 'timeout', 'timepoints', 'iti', 'lateTol'];
 const SKEY = 'lc_settings', LKEY = 'lc_lock';
 let locked = false;
 
 function protoId(S) {
-  const key = JSON.stringify([S.dist, S.gapArc, S.contrast, S.bg, S.flashGray, S.flashMs, S.practice, S.baseline, S.perBlock, S.timeout, S.iti, S.timepoints, S.blockCut, S.lateTol]);
+  const key = JSON.stringify([S.dist, S.gapArc, S.contrast, S.bg, S.flashGray, S.flashMs, S.practice, S.baseline, S.perBlock, S.timeout, S.iti, S.timepoints, S.blockCut, S.lateTol, S.rePractice]);
   let h = 0x811c9dc5;
   for (let i = 0; i < key.length; i++) { h ^= key.charCodeAt(i); h = Math.imul(h, 0x01000193); }
   return 'P-' + (h >>> 0).toString(16).padStart(8, '0').slice(0, 6).toUpperCase();
@@ -768,6 +770,9 @@ async function runSession() {
           show(() => pText(S, ['연습이 끝났습니다', '이어서 기준 측정을 시작합니다', '', { t: '스페이스바', s: 26 }]));
           await waitKey(isSpace);
         }
+      } else {
+        // 렌즈·눈을 바꾼 직후에는 자세를 맞추고 적응할 시간이 필요해서, 짧게 연습하고 바로 기준 측정으로 이어갑니다
+        for (let i = 1; i <= S.rePractice; i++) await runTrial(sess, S, G, 'practice', { tp: null, blockStartS: null, trialNo: i, t0: null });
       }
       for (let i = 1; i <= S.baseline; i++) await runTrial(sess, S, G, 'baseline', { tp: 0, blockStartS: null, trialNo: i, t0: null });
 
