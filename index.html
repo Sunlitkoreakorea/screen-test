@@ -740,9 +740,14 @@ const newId = () => Date.now().toString(36) + Math.random().toString(36).slice(2
 async function runCycles(sess, S, G) {
   show(() => pText(S, [{ t: '이제 화면이 여러 번 밝아집니다', s: 34 }, '밝아졌다가 돌아오면 바로 C가 나옵니다. 계속 방향을 맞혀 주세요', '밝아지지 않고 C만 나올 때도 있습니다', '눈이 부시거나 불편하면 바로 손을 들어주세요', '', { t: '준비되면 스페이스바', s: 26 }]));
   await waitKey(isSpace);
+  // 반복 한 묶음(지연 × 섬광/비교) 안에서만 순서를 섞습니다.
+  // 전체를 한꺼번에 섞으면 섬광 회차가 앞쪽에 몰려 익숙해지는 효과와 섞일 수 있기 때문입니다.
   let plan = [];
-  for (let r = 0; r < S.cycReps; r++) for (const delay of S.cycDelays) for (const type of (S.cycSham ? ['flash', 'sham'] : ['flash'])) plan.push({ type, delay });
-  plan = shuffle(plan);
+  for (let r = 0; r < S.cycReps; r++) {
+    const block = [];
+    for (const delay of S.cycDelays) for (const type of (S.cycSham ? ['flash', 'sham'] : ['flash'])) block.push({ type, delay });
+    plan = plan.concat(shuffle(block));
+  }
   for (let c = 0; c < plan.length; c++) {
     const { type, delay } = plan[c];
     show(() => pFix(S));
@@ -936,8 +941,11 @@ function renderCycResults(list) {
     const rows = C.rows.map(r => `<tr><td>${r.delay}s</td><td>${r.pos}번째</td><td>${r.onset == null ? '—' : r.onset.toFixed(2) + 's'}</td><td>${r.f.n ? `${pct(r.f.acc)} · ${ms(r.f.rt)}ms (${r.f.n}회)` : '—'}</td><td>${r.s.n ? `${pct(r.s.acc)} · ${ms(r.s.rt)}ms (${r.s.n}회)` : '—'}</td><td>${r.dRt == null ? '—' : sg(r.dRt)}</td></tr>`).join('');
     const first = C.rows.filter(r => r.pos === 1 && r.dRt != null);
     const head = first.length ? first.map(r => `지연 ${r.delay}s: ${sg(r.dRt)}ms`).join(' / ') : '비교 회차가 없어 계산하지 못함';
+    // 회차 순서대로 본 첫 반응: 뒤로 갈수록 빨라지는 흐름이 있는지 눈으로 확인하는 용도
+    const order = s.trials.filter(t => t.cyc != null && t.trialNo === 1).map(t => `${t.phase === 'cyc_flash' ? '섬광' : '비교'} ${t.rt == null ? '무응답' : Math.round(t.rt)}${t.rt != null && !t.correct ? '(오답)' : ''}`).join(' → ');
     return `<h3 class="an">${esc(s.S.eye)} · ${esc(condShort(s.S.cond))}${s.aborted ? ' <span class="tag">중단</span>' : ''} · 기준 ${pct(M.accB)} / ${ms(M.rtB)}ms · ${C.cycles}회차${M.nAnticip ? ` · 미리 누름 ${M.nAnticip}회 제외` : ''}</h3>
       <div class="sums"><div><span>섬광 직후 첫 반응이 느려진 정도 (섬광 − 비교)</span><b>${esc(head)}</b></div></div>
+      <p class="note" style="margin:0 0 8px">회차 순서대로 본 첫 반응 (ms): ${esc(order)}</p>
       <div class="table-wrap"><table class="res"><thead><tr><th>첫 C 지연</th><th>순서</th><th>C가 나온 시각</th><th>섬광 회차: 정답률 · RT</th><th>비교 회차: 정답률 · RT</th><th>RT 차이 ms</th></tr></thead><tbody>${rows || '<tr><td colspan="6">측정된 회차가 없습니다</td></tr>'}</tbody></table></div>`;
   }).join('');
   sec.innerHTML = `
