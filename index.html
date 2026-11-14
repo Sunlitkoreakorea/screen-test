@@ -224,6 +224,7 @@
           <label class="f"><span class="l">쉬는 시간<i>초</i></span><input id="cycRest" type="number" value="10" min="2" max="60"></label>
           <label class="f"><span class="l">첫 C까지 지연<i>초, 쉼표로 구분</i></span><input id="cycDelays" type="text" value="0.1"></label>
           <label class="f"><span class="l">섬광 없는 비교 회차</span><select id="cycSham"><option value="1" selected>포함 (권장)</option><option value="0">빼기</option></select></label>
+          <label class="f"><span class="l">연습 회차<i>회</i></span><input id="cycWarm" type="number" value="2" min="0" max="6"></label>
         </div>
       </section>
 
@@ -271,7 +272,7 @@
       <div class="card">
         <h2>실행</h2>
         <div class="lockbar" id="lockBar">
-          <div class="lb-info"><span class="h">측정 프로토콜 ID</span><b id="protoId">P-000000</b><span class="h" id="lockState"></span></div>
+          <div class="lb-info"><span class="h">측정 프로토콜 ID</span><b id="protoId">P-000000</b><span class="h" id="protoIdCyc"></span><span class="h" id="lockState"></span></div>
           <div class="lb-btns"><button type="button" id="btnDefaults" title="측정 설정을 처음 기본값으로">기본값</button><button type="button" id="btnLock">설정 잠금</button></div>
         </div>
         <div class="actions">
@@ -306,6 +307,7 @@
       <label><input type="checkbox" id="fFirst" checked>재측정(2차)은 군 비교에서 제외</label>
       <button type="button" id="btnAllTrials">전체 시행 CSV</button>
       <button type="button" id="btnAllSum">전체 요약 CSV</button>
+      <button type="button" id="btnAllCyc">반복 섬광 전체 CSV</button>
       <button type="button" id="btnBackup">JSON 백업</button>
       <button type="button" id="btnRestore">JSON 복원</button>
       <input type="file" id="fileRestore" accept=".json,application/json" multiple hidden>
@@ -369,6 +371,7 @@ function readSettings() {
     cycRestMs: clamp(Math.round(num('cycRest', 8) * 1000), 2000, 60000),
     cycDelays: (() => { const a = String($('#cycDelays').value).split(/[\s,]+/).map(parseFloat).filter(x => Number.isFinite(x) && x >= 0 && x <= 10); const u = [...new Set(a)].sort((x, y) => x - y); return u.length ? u : [0.1]; })(),
     cycSham: $('#cycSham').value === '1',
+    cycWarm: clamp(Math.round(num('cycWarm', 2)), 0, 6),
     baseline: clamp(Math.round(num('baseline', 10)), 1, 60),
     perBlock: clamp(Math.round(num('perBlock', 5)), 1, 20),
     iti: clamp(Math.round(num('iti', 200)), 0, 2000),
@@ -387,14 +390,14 @@ function readSettings() {
 
 /* ---------- 측정 프로토콜 (설정 저장 · 잠금 · ID) ---------- */
 // 측정 결과에 영향을 주는 설정. 모니터 대각선은 화면 보정용이라 ID 계산에서는 빠집니다.
-const PROTO_IDS = ['diag', 'dist', 'gap', 'contrast', 'bg', 'flashGray', 'flashSec', 'practice', 'rePractice', 'baseline', 'perBlock', 'timeout', 'timepoints', 'iti', 'lateTol', 'cycReps', 'cycFlashSec', 'cycTrials', 'cycRest', 'cycDelays', 'cycSham'];
+const PROTO_IDS = ['diag', 'dist', 'gap', 'contrast', 'bg', 'flashGray', 'flashSec', 'practice', 'rePractice', 'baseline', 'perBlock', 'timeout', 'timepoints', 'iti', 'lateTol', 'cycReps', 'cycFlashSec', 'cycTrials', 'cycRest', 'cycDelays', 'cycSham', 'cycWarm'];
 const SKEY = 'lc_settings', LKEY = 'lc_lock';
 let locked = false;
 
 function protoId(S) {
   const key = JSON.stringify([S.dist, S.gapArc, S.contrast, S.bg, S.flashGray, S.flashMs, S.practice, S.baseline, S.perBlock, S.timeout, S.iti, S.timepoints, S.blockCut, S.lateTol, S.rePractice]
     // 반복 섬광 모드로 잰 기록은 그 모드의 설정까지 포함해 다른 ID가 됩니다
-    .concat(S.mode === 'cyc' ? ['cyc', S.cycReps, S.cycFlashMs, S.cycTrials, S.cycRestMs, S.cycDelays, S.cycSham] : []));
+    .concat(S.mode === 'cyc' ? ['cyc', S.cycReps, S.cycFlashMs, S.cycTrials, S.cycRestMs, S.cycDelays, S.cycSham, S.cycWarm] : []));
   let h = 0x811c9dc5;
   for (let i = 0; i < key.length; i++) { h ^= key.charCodeAt(i); h = Math.imul(h, 0x01000193); }
   return 'P-' + (h >>> 0).toString(16).padStart(8, '0').slice(0, 6).toUpperCase();
@@ -507,6 +510,7 @@ function updatePreview() {
 
   $('#calState').textContent = state.calibrated ? '카드 보정값 사용 중' : '대각선 추정값 사용 중';
   $('#protoId').textContent = protoId(S);
+  $('#protoIdCyc').textContent = '반복 섬광 모드로 재면 ' + protoId({ ...S, mode: 'cyc' });
 }
 
 $('#settings').addEventListener('input', () => { saveSettings(); updatePreview(); });
@@ -760,8 +764,13 @@ async function runCycles(sess, S, G) {
     for (const delay of S.cycDelays) for (const type of (S.cycSham ? ['flash', 'sham'] : ['flash'])) block.push({ type, delay });
     plan = plan.concat(shuffle(block));
   }
+  // 처음 몇 회차는 절차에 익숙해지는 연습 회차 (비교 → 섬광 순서로 번갈아). 요약 계산에서는 빠집니다.
+  const warm = [];
+  for (let w = 0; w < S.cycWarm; w++) warm.push({ type: S.cycSham && w % 2 === 0 ? 'sham' : 'flash', delay: S.cycDelays[0], warm: true });
+  plan = warm.concat(plan);
   for (let c = 0; c < plan.length; c++) {
     const { type, delay } = plan[c];
+    const phase = (plan[c].warm ? 'cyc_warm_' : 'cyc_') + type;
     show(() => pFix(S));
     await sleep(c === 0 ? 2000 : S.cycRestMs);
     // 비교 회차는 화면이 밝아지지 않지만, 십자 표시가 같은 시간 동안 사라졌다가 돌아오는 것은 섬광 회차와 같습니다
@@ -771,7 +780,7 @@ async function runCycles(sess, S, G) {
     for (let p = 1; p <= S.cycTrials; p++) {
       // 첫 C는 정해진 지연 시각에 맞춰 띄우고, 그 뒤는 평소 시행 간격으로 이어갑니다
       const iti = p === 1 ? Math.max(0, t0 + delay * 1000 - performance.now() - 17) : S.iti;
-      await runTrial(sess, S, G, type === 'flash' ? 'cyc_flash' : 'cyc_sham', { tp: delay, blockStartS: null, trialNo: p, t0, cyc: c + 1, iti });
+      await runTrial(sess, S, G, phase, { tp: delay, blockStartS: null, trialNo: p, t0, cyc: c + 1, iti });
     }
   }
   show(() => pFix(S));
@@ -915,17 +924,31 @@ let lastSaveOk = true;
 // 반복 섬광 모드 요약: 첫 C 지연 × 섬광 뒤 순서별로 섬광 회차와 비교 회차를 나란히 계산
 function summarizeCyc(sess) {
   const mean = a => a.length ? a.reduce((x, y) => x + y, 0) / a.length : null;
+  const lim = sess.S.timeout;
   const T = sess.trials.filter(t => !t.anticip && (t.phase === 'cyc_flash' || t.phase === 'cyc_sham'));
-  const stat = a => ({ n: a.length, acc: a.length ? a.filter(t => t.correct).length / a.length : null, rt: mean(a.filter(t => t.correct && t.rt != null).map(t => t.rt)) });
+  // rt: 맞힌 시행만의 평균. rtAll: 틀렸거나 답하지 못한 시행을 응답 제한시간으로 넣은 평균 (안 보여서 못 답한 경우도 반영)
+  const stat = a => ({
+    n: a.length, miss: a.filter(t => t.timeout).length,
+    acc: a.length ? a.filter(t => t.correct).length / a.length : null,
+    rt: mean(a.filter(t => t.correct && t.rt != null).map(t => t.rt)),
+    rtAll: mean(a.map(t => (t.correct && t.rt != null ? t.rt : lim))),
+  });
+  const diff = (x, y) => (x != null && y != null ? x - y : null);
   const rows = [];
   [...new Set(T.map(t => t.tp))].sort((a, b) => a - b).forEach(d => {
     [...new Set(T.filter(t => t.tp === d).map(t => t.trialNo))].sort((a, b) => a - b).forEach(p => {
       const at = T.filter(t => t.tp === d && t.trialNo === p);
       const f = stat(at.filter(t => t.phase === 'cyc_flash')), s = stat(at.filter(t => t.phase === 'cyc_sham'));
-      rows.push({ delay: d, pos: p, onset: mean(at.map(t => t.onsetS)), f, s, dRt: f.rt != null && s.rt != null ? f.rt - s.rt : null, dAcc: f.acc != null && s.acc != null ? f.acc - s.acc : null });
+      rows.push({ delay: d, pos: p, onset: mean(at.map(t => t.onsetS)), f, s, dRt: diff(f.rt, s.rt), dAll: diff(f.rtAll, s.rtAll), dAcc: diff(f.acc, s.acc) });
     });
   });
-  return { rows, cycles: new Set(sess.trials.filter(t => t.cyc != null).map(t => t.cyc)).size };
+  return { rows, cycles: new Set(sess.trials.filter(t => t.phase === 'cyc_flash' || t.phase === 'cyc_sham').map(t => t.cyc)).size };
+}
+// 반복 섬광 요약을 CSV 행으로
+const CYC_HDR = ['code', 'group', 'se_d', 'eye', 'condition', 'session_no', 'started_at', 'protocol_id', 'aborted', 'cyc_flash_ms', 'base_acc', 'base_rt_ms', 'first_delay_s', 'position', 'onset_s', 'flash_n', 'flash_miss', 'flash_acc', 'flash_rt_ms', 'flash_rt_all_ms', 'sham_n', 'sham_miss', 'sham_acc', 'sham_rt_ms', 'sham_rt_all_ms', 'rt_diff_ms', 'rt_all_diff_ms', 'acc_diff'];
+function cycCsvRows(s) {
+  const M = s.summary, C = summarizeCyc(s);
+  return C.rows.map(r => [s.S.code, s.S.group || '', s.S.se == null ? '' : s.S.se, s.S.eye, s.S.cond, s.S.sess, s.startedAt, protoOf(s), s.aborted ? 1 : 0, s.S.cycFlashMs, fix(M.accB, 4), fix(M.rtB, 1), r.delay, r.pos, fix(r.onset, 3), r.f.n, r.f.miss, fix(r.f.acc, 4), fix(r.f.rt, 1), fix(r.f.rtAll, 1), r.s.n, r.s.miss, fix(r.s.acc, 4), fix(r.s.rt, 1), fix(r.s.rtAll, 1), fix(r.dRt, 1), fix(r.dAll, 1), fix(r.dAcc, 4)]);
 }
 
 function storeSession(sess) {
@@ -945,20 +968,20 @@ const showLast = x => {
   return x && x.list ? renderSeqResults(x.list) : renderResults(x);
 };
 
-const CYC_HDR = ['code', 'group', 'se_d', 'eye', 'condition', 'session_no', 'started_at', 'protocol_id', 'aborted', 'base_acc', 'base_rt_ms', 'first_delay_s', 'position', 'onset_s', 'flash_n', 'flash_acc', 'flash_rt_ms', 'sham_n', 'sham_acc', 'sham_rt_ms', 'rt_diff_ms'];
 function renderCycResults(list) {
   const S = list[0].S, sec = $('#results'), sg = v => (v > 0 ? '+' : '') + v.toFixed(0);
   const blocks = list.map(s => {
-    const M = s.summary, C = s.cyc || summarizeCyc(s);
-    const rows = C.rows.map(r => `<tr><td>${r.delay}s</td><td>${r.pos}번째</td><td>${r.onset == null ? '—' : r.onset.toFixed(2) + 's'}</td><td>${r.f.n ? `${pct(r.f.acc)} · ${ms(r.f.rt)}ms (${r.f.n}회)` : '—'}</td><td>${r.s.n ? `${pct(r.s.acc)} · ${ms(r.s.rt)}ms (${r.s.n}회)` : '—'}</td><td>${r.dRt == null ? '—' : sg(r.dRt)}</td></tr>`).join('');
-    const first = C.rows.filter(r => r.pos === 1 && r.dRt != null);
-    const head = first.length ? first.map(r => `지연 ${r.delay}s: ${sg(r.dRt)}ms`).join(' / ') : '비교 회차가 없어 계산하지 못함';
+    const M = s.summary, C = summarizeCyc(s);
+    const cell = x => (x.n ? `${pct(x.acc)} · ${ms(x.rt)}ms (${x.n}회${x.miss ? ', 무응답 ' + x.miss : ''})` : '—');
+    const rows = C.rows.map(r => `<tr><td>${r.delay}s</td><td>${r.pos}번째</td><td>${r.onset == null ? '—' : r.onset.toFixed(2) + 's'}</td><td>${cell(r.f)}</td><td>${cell(r.s)}</td><td>${r.dRt == null ? '—' : sg(r.dRt)}</td><td>${r.dAll == null ? '—' : sg(r.dAll)}</td></tr>`).join('');
+    const first = C.rows.filter(r => r.pos === 1 && r.dAll != null);
+    const head = first.length ? first.map(r => `지연 ${r.delay}s: ${r.dRt == null ? '—' : sg(r.dRt) + 'ms'} (틀림·무응답 포함 ${sg(r.dAll)}ms)`).join(' / ') : '비교 회차가 없어 계산하지 못함';
     // 회차 순서대로 본 첫 반응: 뒤로 갈수록 빨라지는 흐름이 있는지 눈으로 확인하는 용도
-    const order = s.trials.filter(t => t.cyc != null && t.trialNo === 1).map(t => `${t.phase === 'cyc_flash' ? '섬광' : '비교'} ${t.rt == null ? '무응답' : Math.round(t.rt)}${t.rt != null && !t.correct ? '(오답)' : ''}`).join(' → ');
+    const order = s.trials.filter(t => t.cyc != null && t.trialNo === 1).map(t => `${t.phase.includes('warm') ? '연습·' : ''}${t.phase.endsWith('flash') ? '섬광' : '비교'} ${t.rt == null ? '무응답' : Math.round(t.rt)}${t.rt != null && !t.correct ? '(오답)' : ''}`).join(' → ');
     return `<h3 class="an">${esc(s.S.eye)} · ${esc(condShort(s.S.cond))}${s.aborted ? ' <span class="tag">중단</span>' : ''} · 기준 ${pct(M.accB)} / ${ms(M.rtB)}ms · ${C.cycles}회차${M.nAnticip ? ` · 미리 누름 ${M.nAnticip}회 제외` : ''}</h3>
       <div class="sums"><div><span>섬광 직후 첫 반응이 느려진 정도 (섬광 − 비교)</span><b>${esc(head)}</b></div></div>
       <p class="note" style="margin:0 0 8px">회차 순서대로 본 첫 반응 (ms): ${esc(order)}</p>
-      <div class="table-wrap"><table class="res"><thead><tr><th>첫 C 지연</th><th>순서</th><th>C가 나온 시각</th><th>섬광 회차: 정답률 · RT</th><th>비교 회차: 정답률 · RT</th><th>RT 차이 ms</th></tr></thead><tbody>${rows || '<tr><td colspan="6">측정된 회차가 없습니다</td></tr>'}</tbody></table></div>`;
+      <div class="table-wrap"><table class="res"><thead><tr><th>첫 C 지연</th><th>순서</th><th>C가 나온 시각</th><th>섬광 회차: 정답률 · RT</th><th>비교 회차: 정답률 · RT</th><th>RT 차이 ms</th><th>틀림·무응답 포함 차이 ms</th></tr></thead><tbody>${rows || '<tr><td colspan="7">측정된 회차가 없습니다</td></tr>'}</tbody></table></div>`;
   }).join('');
   sec.innerHTML = `
     <h2>측정 결과 · 반복 섬광</h2>
@@ -969,14 +992,11 @@ function renderCycResults(list) {
     ${lastSaveOk ? '' : '<div class="warn" style="margin-bottom:10px">브라우저 저장공간이 부족해 누적 기록에 저장하지 못했습니다. 아래 CSV를 꼭 저장하세요.</div>'}
     ${blocks}
     <div class="res-actions"><button type="button" class="primary" id="dlTrials" style="padding:8px 14px">시행 로그 CSV 저장</button><button type="button" class="primary" id="dlSum" style="padding:8px 14px">반복 섬광 요약 CSV 저장</button></div>
-    <p class="note">비교 회차는 화면이 밝아지지 않은 회차입니다. RT 차이가 양수이면 섬광 뒤에 더 느렸다는 뜻입니다. "C가 나온 시각"은 섬광(또는 비교 구간)이 끝난 뒤의 시간입니다.</p>`;
+    <p class="note">비교 회차는 화면이 밝아지지 않은 회차입니다. RT 차이가 양수이면 섬광 뒤에 더 느렸다는 뜻입니다. "RT 차이"는 맞힌 시행만으로, "틀림·무응답 포함 차이"는 틀렸거나 답하지 못한 시행을 응답 제한시간으로 넣어 계산합니다. "C가 나온 시각"은 섬광(또는 비교 구간)이 끝난 뒤의 시간입니다. 연습 회차는 계산에서 빠집니다.</p>`;
   sec.hidden = false;
   const name = runFileName(list);
   $('#dlTrials').addEventListener('click', () => download(name + '_trials.csv', toCsv(TRIAL_HDR, list.flatMap(s => trialRows(s)))));
-  $('#dlSum').addEventListener('click', () => download(name + '_cycles.csv', toCsv(CYC_HDR, list.flatMap(s => {
-    const M = s.summary, C = s.cyc || summarizeCyc(s);
-    return C.rows.map(r => [s.S.code, s.S.group || '', s.S.se == null ? '' : s.S.se, s.S.eye, s.S.cond, s.S.sess, s.startedAt, protoOf(s), s.aborted ? 1 : 0, fix(M.accB, 4), fix(M.rtB, 1), r.delay, r.pos, fix(r.onset, 3), r.f.n, fix(r.f.acc, 4), fix(r.f.rt, 1), r.s.n, fix(r.s.acc, 4), fix(r.s.rt, 1), fix(r.dRt, 1)]);
-  }))));
+  $('#dlSum').addEventListener('click', () => download(name + '_cycles.csv', toCsv(CYC_HDR, list.flatMap(cycCsvRows))));
 }
 
 function finish(list) {
@@ -1146,15 +1166,15 @@ const TRIAL_HDR = ['code', 'group', 'se_d', 'eye', 'condition', 'session_no', 's
 function trialRows(sess) {
   const S = sess.S, G = sess.G, cal = sess.calibrated === undefined ? state.calibrated : sess.calibrated;
   const pid = protoOf(sess);
-  return sess.trials.map(t => [S.code, S.group || '', S.se == null ? '' : S.se, S.eye, S.cond, S.sess, sess.startedAt, pid, seqIdx(sess), t.phase, t.tp, fix(t.blockStartS, 3), fix(t.onsetS, 3), t.trialNo, t.cyc == null ? '' : t.cyc, ORI_CODE[t.ori], t.resp == null ? '' : ORI_CODE[t.resp], t.correct ? 1 : 0, fix(t.rt, 1), t.timeout ? 1 : 0, t.anticip ? 1 : 0, S.dist, S.gapArc, G.gapPx.toFixed(2), S.contrast, G.actual.toFixed(2), S.bg, G.tgt, S.flashGray, S.flashMs, G.ppm.toFixed(4), cal ? 1 : 0, sess.aborted ? 1 : 0, S.note]);
+  return sess.trials.map(t => [S.code, S.group || '', S.se == null ? '' : S.se, S.eye, S.cond, S.sess, sess.startedAt, pid, seqIdx(sess), t.phase, t.tp, fix(t.blockStartS, 3), fix(t.onsetS, 3), t.trialNo, t.cyc == null ? '' : t.cyc, ORI_CODE[t.ori], t.resp == null ? '' : ORI_CODE[t.resp], t.correct ? 1 : 0, fix(t.rt, 1), t.timeout ? 1 : 0, t.anticip ? 1 : 0, S.dist, S.gapArc, G.gapPx.toFixed(2), S.contrast, G.actual.toFixed(2), S.bg, G.tgt, S.flashGray, sess.mode === 'cyc' ? S.cycFlashMs : S.flashMs, G.ppm.toFixed(4), cal ? 1 : 0, sess.aborted ? 1 : 0, S.note]);
 }
 function downloadTrials(sess) {
   download(baseName(sess) + '_trials.csv', toCsv(TRIAL_HDR, trialRows(sess)));
 }
 function summaryRow(sess) {
   const S = sess.S, M = sess.summary;
-  const hdr = ['code', 'group', 'se_d', 'eye', 'condition', 'session_no', 'started_at', 'protocol_id', 'seq_idx', 'aborted', 'dist_cm', 'gap_arcmin', 'contrast_pct', 'bg_gray', 'flash_gray', 'flash_ms', 'base_n', 'base_acc', 'base_rt_ms'];
-  const row = [S.code, S.group || '', S.se == null ? '' : S.se, S.eye, S.cond, S.sess, sess.startedAt, protoOf(sess), seqIdx(sess), sess.aborted ? 1 : 0, S.dist, S.gapArc, S.contrast, S.bg, S.flashGray, S.flashMs, M.nB, fix(M.accB, 4), fix(M.rtB, 1)];
+  const hdr = ['code', 'group', 'se_d', 'eye', 'condition', 'session_no', 'started_at', 'protocol_id', 'seq_idx', 'mode', 'aborted', 'dist_cm', 'gap_arcmin', 'contrast_pct', 'bg_gray', 'flash_gray', 'flash_ms', 'base_n', 'base_acc', 'base_rt_ms'];
+  const row = [S.code, S.group || '', S.se == null ? '' : S.se, S.eye, S.cond, S.sess, sess.startedAt, protoOf(sess), seqIdx(sess), sess.mode || 'std', sess.aborted ? 1 : 0, S.dist, S.gapArc, S.contrast, S.bg, S.flashGray, S.flashMs, M.nB, fix(M.accB, 4), fix(M.rtB, 1)];
   S.timepoints.forEach(tp => {
     const r = M.rows.find(x => x.tp === tp);
     hdr.push('n_' + tp, 'acc_' + tp, 'rt_' + tp);
@@ -1382,7 +1402,7 @@ function renderAnalysis() {
   }
 
   const ex = $('#fAborted').checked;
-  const allOk = hist.filter(s => !s.excluded && s.summary && (!ex || !s.aborted));
+  const allOk = hist.filter(s => !s.excluded && s.summary && s.summary.rows.length && (!ex || !s.aborted));
   const conds = [...new Set(allOk.map(s => s.S.cond))];
   if (conds.length) {
     const rows = conds.map(cn => {
@@ -1390,6 +1410,28 @@ function renderAnalysis() {
       return `<tr><td>${esc(condShort(cn))}</td><td>${ss.length}</td><td>${pct(avg(ss.map(s => s.summary.accB).filter(v => v != null)))}</td><td>${num2(avg(ss.map(s => s.summary.rtB).filter(v => v != null)), 0)}</td><td>${(avg(ss.map(s => s.summary.accAuc)) * 100).toFixed(0)}</td><td>${avg(ss.map(s => s.summary.rtAuc)).toFixed(0)}</td></tr>`;
     }).join('');
     html += `<h3 class="an">조건별 요약</h3><div class="table-wrap"><table class="res"><thead><tr><th>조건</th><th>세션</th><th>기준 정답률</th><th>기준 RT ms</th><th>정답률 면적</th><th>RT 면적</th></tr></thead><tbody>${rows}</tbody></table></div>`;
+  }
+
+  // 반복 섬광 모드: 세션별 "섬광 직후 첫 반응 지연"과 군별 평균. 분석 조건·프로토콜 필터를 같이 따릅니다.
+  const cfC = $('#fCond').value, pfC = $('#fProto').value || 'ALL';
+  const cycS = hist.filter(s => s.mode === 'cyc' && !s.excluded && (!ex || !s.aborted) && (cfC === 'ALL' || s.S.cond === cfC) && (pfC === 'ALL' || protoOf(s) === pfC))
+    .map(s => ({ s, first: summarizeCyc(s).rows.filter(r => r.pos === 1 && r.dAll != null) })).filter(x => x.first.length);
+  if (cycS.length) {
+    const delays = [...new Set(cycS.flatMap(x => x.first.map(r => r.delay)))].sort((a, b) => a - b);
+    const val = (x, d) => { const r = x.first.find(q => q.delay === d); return r ? r.dAll : null; };
+    const sg2 = v => (v > 0 ? '+' : '') + v.toFixed(0);
+    const srows = cycS.slice().sort((a, b) => (a.s.startedAt < b.s.startedAt ? 1 : -1)).map(x => `<tr><td>${esc(x.s.S.code)}${x.s.aborted ? ' <span class="tag">중단</span>' : ''}</td><td>${esc(GLABEL[grpOf(x.s)] || '')}</td><td>${seOf(x.s) == null ? '—' : seOf(x.s).toFixed(2)}</td><td>${esc(x.s.S.eye)}</td><td>${esc(condShort(x.s.S.cond))}</td><td>${dt(x.s.startedAt)}</td>${delays.map(d => `<td>${val(x, d) == null ? '—' : sg2(val(x, d))}</td>`).join('')}</tr>`).join('');
+    const grows = GROUPS.map(g => {
+      const xs = cycS.filter(x => grpOf(x.s) === g);
+      return xs.length ? `<tr><td><span class="dot" style="background:${GCOL[g]}"></span>${esc(GLABEL[g])}</td><td>${xs.length}</td>${delays.map(d => `<td>${fmt(xs.map(x => val(x, d)).filter(v => v != null), 0)}</td>`).join('')}</tr>` : '';
+    }).join('');
+    const pick = g => cycS.filter(x => grpOf(x.s) === g).map(x => val(x, delays[0])).filter(v => v != null);
+    const dC = cohenD(pick('G1'), pick('G3'));
+    const dh = delays.map(d => `<th>지연 ${d}s</th>`).join('');
+    html += `<h3 class="an">반복 섬광 모드 · 섬광 직후 첫 반응 지연 (섬광 − 비교, ms)</h3>
+      <div class="table-wrap"><table class="res"><thead><tr><th>군</th><th>세션</th>${dh}</tr></thead><tbody>${grows}</tbody></table></div>
+      <p class="note">평균 ± SD. 값이 클수록 섬광 직후에 더 느려졌다는 뜻입니다. ${esc(GLABEL['G1'])} vs ${esc(GLABEL['G3'])} (지연 ${delays[0]}s) Cohen's d = ${dC == null ? '— (각 군 2개 이상 필요)' : dC.toFixed(2)}. 틀렸거나 답하지 못한 시행은 응답 제한시간으로 넣어 계산했습니다. 한 사람을 여러 번 쟀으면 여러 줄로 들어갑니다.</p>
+      <div class="tbl-scroll" style="max-height:260px"><table class="res" style="min-width:640px"><thead><tr><th>코드</th><th>군</th><th>SE(D)</th><th>눈</th><th>조건</th><th>일시</th>${dh}</tr></thead><tbody>${srows}</tbody></table></div>`;
   }
 
   body.innerHTML = html;
@@ -1427,17 +1469,22 @@ function renderAnalysis() {
     if (!hist.length) { alert('저장된 기록이 없습니다.'); return; }
     const { pool, rm } = analysisPools(), ids = new Set(pool.map(s => s.id));
     const tps = [...new Set(hist.flatMap(s => (s.summary ? s.summary.rows.map(r => r.tp) : [])))].sort((a, b) => a - b);
-    const hdr = ['code', 'group', 'se_d', 'eye', 'condition', 'session_no', 'started_at', 'protocol_id', 'seq_idx', 'aborted', 'excluded', 'in_rrdi_pool', 'base_n', 'base_acc', 'base_rt_ms'];
+    const hdr = ['code', 'group', 'se_d', 'eye', 'condition', 'session_no', 'started_at', 'protocol_id', 'seq_idx', 'mode', 'aborted', 'excluded', 'in_rrdi_pool', 'base_n', 'base_acc', 'base_rt_ms'];
     tps.forEach(tp => hdr.push('n_' + tp, 'acc_' + tp, 'rt_' + tp));
     hdr.push('acc_deficit_sum', 'rt_excess_sum_ms', 'acc_deficit_auc', 'rt_excess_auc', 'z_acc_auc', 'z_rt_auc', 'rrdi', 'note');
     const rows = hist.slice().sort((a, b) => a.startedAt < b.startedAt ? -1 : 1).map(s => {
       const M = s.summary, o = rm.get(s.id);
-      const r = [s.S.code, s.S.group || '', s.S.se == null ? '' : s.S.se, s.S.eye, s.S.cond, s.S.sess, s.startedAt, protoOf(s), seqIdx(s), s.aborted ? 1 : 0, s.excluded ? 1 : 0, ids.has(s.id) ? 1 : 0, M.nB, fix(M.accB, 4), fix(M.rtB, 1)];
+      const r = [s.S.code, s.S.group || '', s.S.se == null ? '' : s.S.se, s.S.eye, s.S.cond, s.S.sess, s.startedAt, protoOf(s), seqIdx(s), s.mode || 'std', s.aborted ? 1 : 0, s.excluded ? 1 : 0, ids.has(s.id) ? 1 : 0, M.nB, fix(M.accB, 4), fix(M.rtB, 1)];
       tps.forEach(tp => { const x = M.rows.find(y => y.tp === tp); r.push(x ? x.n : '', x ? x.acc.toFixed(4) : '', x ? fix(x.rt, 1) : ''); });
       r.push(M.accSum.toFixed(4), M.rtSum.toFixed(1), M.accAuc.toFixed(4), M.rtAuc.toFixed(1), o ? o.za.toFixed(4) : '', o ? o.zr.toFixed(4) : '', o ? o.rrdi.toFixed(4) : '', s.S.note);
       return r;
     });
     download('LandoltC_all_summary_' + new Date().toISOString().slice(0, 10) + '.csv', toCsv(hdr, rows));
+  });
+  $('#btnAllCyc').addEventListener('click', () => {
+    const cs = hist.filter(s => s.mode === 'cyc').sort((a, b) => (a.startedAt < b.startedAt ? -1 : 1));
+    if (!cs.length) { alert('반복 섬광 모드로 잰 기록이 없습니다.'); return; }
+    download('LandoltC_all_cycles_' + new Date().toISOString().slice(0, 10) + '.csv', toCsv(CYC_HDR, cs.flatMap(cycCsvRows)));
   });
   $('#btnBackup').addEventListener('click', () => {
     if (!hist.length) { alert('저장된 기록이 없습니다.'); return; }
